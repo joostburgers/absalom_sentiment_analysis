@@ -35,6 +35,11 @@ library(tidyverse)
 library(tidytext)
 library(stringi)
 library(htmlTable)
+library(stringr)
+library(ggplot2)
+library(plotly)
+library(ggthemes)
+library(textstem)
 ```
 
 ```{r load_text}
@@ -43,17 +48,89 @@ absalom_df <- as.data.frame(read_file("Faulkner_William_Absalom_Absalom.txt"))
 colnames(absalom_df) <- "text" 
 ```
 
+```{r load_race_words}
 
-```{r unnest_text}
+race_words <- read_csv("race_words.csv")
 
-#unnest the text by sentence and then label each chapter.
-absalom_tidy <- absalom_df %>% 
-                unnest_regex(text,text, pattern="—[:digit:]—" ) %>% 
-                mutate(chapter = row_number()) %>% 
-                unnest_sentences(sentences, text) %>%
-                mutate(sentence_number = row_number())
 ```
 
 
+```{r unnest_text}
+
+#unnest the text by sentence and then label each chapter number and sentence number.
+absalom_tidy <- absalom_df %>% 
+                unnest_regex(text,text, pattern="—[:digit:]—" ) %>% 
+                mutate(chapter = row_number()) %>% 
+                unnest_regex(sentences, text, pattern= "[.?!]") %>%
+                mutate(sentence_number = row_number())  %>% 
+                unnest_tokens(word, sentences)
+```
+
+```{r word_frequency}
+#Remove the stop words to reduce over counting
+
+data("stop_words")
+absalom_stats <- absalom_tidy %>% 
+                anti_join(stop_words)  
+
+```
+
+
+```{r add_race_words}
+#Mark each race word as true and then convert every non-race word as false. then add a column for the lemmatized words.
+
+absalom_race_stats <- absalom_stats %>% 
+                      left_join(race_words) %>% 
+                      mutate(race_word = replace_na(race_word,FALSE)) %>% 
+                       mutate(word_lemma = textstem::lemmatize_words(word))   
+
+```
+
+
+
+
+
+```{r message=FALSE, results='markup'}
+absalom_plot <- absalom_race_stats %>% 
+    group_by(race_word) %>% 
+    count(word_lemma, sort = TRUE) %>%
+    top_n(10) %>%
+    mutate(word_lemma = reorder(word_lemma, n))  
+
+fig <- plot_ly(absalom_plot,
+  x = ~word_lemma,
+  y = ~n,
+  type = "bar",
+  color= ~race_word
+)
+
+fig <- fig %>% 
+        layout(title = "Most Frequent Word by Non-Race and Race Words",
+         xaxis = list(title = "Word Stem"),
+         yaxis = list(title = "Number of Words"),
+              legend=list(title=list(text='<b> Race Word </b>')),
+         annotations = 
+     list(x = 1, y = -0.1, text = "Note: The chart displays the most frequent words based on word stem.<br>This prevents counting <i>father</i> and <i>father's</i> separately.", 
+      showarrow = F, xref='paper', yref='paper', 
+      xanchor='center', yanchor='auto', xshift=-100, yshift=250,
+      font=list(size=11, color="grey")))
+
+
+fig
+
+    
+
+
+
+```
+
+
+
+
+```{r}
+#absalom_sentiment <- 
+
+
+```
 
 
