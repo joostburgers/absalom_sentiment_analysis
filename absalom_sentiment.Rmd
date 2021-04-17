@@ -1,0 +1,32 @@
+---
+author: "Johannes Burgers"
+title: "*Absalom, Absalom!* Sentiment Analysis"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  rmdformats::robobook:
+    code_folding: "hide"
+---
+
+
+```{r setup, include=FALSE, messages = FALSE, warning=FALSE, error=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, error=FALSE)
+```
+
+## Introduction
+
+The following analysis 
+
+
+## Part 1: Statistical Overview *Absalom, Absalom!*
+
+### Load packages 
+
+The following packages: `tidyverse`, `tidygeocoder`,`tidytext`,`stringi`,`htmlTable`, are necessary to run this script.
+
+```{r load_packages}
+library(tidyverse)
+library(tidygeocoder)
+library(tidytext)
+library(stringi)
+library(htmlTable)
+```
