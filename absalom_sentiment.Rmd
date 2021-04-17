@@ -8,25 +8,52 @@ output:
 ---
 
 
-```{r setup, include=FALSE, messages = FALSE, warning=FALSE, error=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, error=FALSE)
+```{r setup, include=FALSE, message = FALSE, warning=FALSE, error=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE, error=FALSE)
 ```
 
 ## Introduction
 
-The following analysis 
+The following is a brief linguistic analysis of the use of racially charged language in William Faulkner's *Absalom, Absalom!*. Faulkner's representation of race was complicated, just as his own his relationship with race was complex. As a Southern white moderate, he voiced his anguish over the dehumanization of African Americans under Jim Crow segregation, and at the same time could also casually refer to people as "niggers" during the public retelling of a [comic story](https://faulkner.lib.virginia.edu/display/wfaudio02_2.html#wfaudio02_2.2). Indeed, there is no shortage of literature on Faulkner and race in general, and with regards to *Absalom, Absalom!* in particular. Given this extensive critical history, it almost goes without saying, that a computational analysis of word choice, especially with regard to racially charged language, cannot due justice to the complexities and nuances of either the text or Faulkner's broader critical intervention. Nevertheless, using techniques common in corpus linguistics (CL) it is possible to give a birds-eye view of how the use of certain words is patterned, this pattern can then, in turn, inform subsequent close readings. 
+
+The following piece uses several techniques available to standard CL analysis, and one more complex analysis that is exclusively available to practitioners who have access to the [Digital Yoknapatawpha](http://faulkner.iath.virginia.edu/) data set. These different techniques have been split into different parts.
+
+- **Part 1: Statistical Overview**  
+          Analysis of the general linguistic pattern of the texts including word frequency and word           correlations.
+- **Part 2: Sentiment Analysis**  
+          Analysis of racially charged language and the sentiments that surround the use of those             words.
+- **Part 3: Character Sentiment Analysis**  
+          Sentiment analysis of specific characters. Using the data available in the *DY* database,           a sentiment pattern around certain characters was created.
+          
+All of the data was generated using the R programming language using the `tidyverse` suite of packages. The full repository is available at https://github.com/joostburgers/absalom_sentiment_analysis Due to copyright issues the repository does not include the Absalom, Absalom text file used for data analysis.
 
 
 ## Part 1: Statistical Overview *Absalom, Absalom!*
 
-### Load packages 
-
-The following packages: `tidyverse`, `tidygeocoder`,`tidytext`,`stringi`,`htmlTable`, are necessary to run this script.
-
 ```{r load_packages}
 library(tidyverse)
-library(tidygeocoder)
 library(tidytext)
 library(stringi)
 library(htmlTable)
 ```
+
+```{r load_text}
+#Read in the text
+absalom_df <- as.data.frame(read_file("Faulkner_William_Absalom_Absalom.txt"))
+colnames(absalom_df) <- "text" 
+```
+
+
+```{r unnest_text}
+
+#unnest the text by sentence and then label each chapter.
+absalom_tidy <- absalom_df %>% 
+                unnest_regex(text,text, pattern="—[:digit:]—" ) %>% 
+                mutate(chapter = row_number()) %>% 
+                unnest_sentences(sentences, text) %>%
+                mutate(sentence_number = row_number())
+```
+
+
+
+
