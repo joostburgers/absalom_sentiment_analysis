@@ -1,10 +1,9 @@
 ---
+title: '*Absalom, Absalom!* Sentiment Analysis'
 author: "Johannes Burgers"
-title: "*Absalom, Absalom!* Sentiment Analysis"
-date: "Last update: `r format(Sys.time(), '%d %B, %Y')`"
-output: 
-  rmdformats::robobook:
-    code_folding: "hide"
+output:
+  html_document:
+    df_print: paged
 ---
 
 
@@ -29,6 +28,14 @@ All of the data was generated using the R programming language using the `tidyve
 
 
 ## Part 1: Statistical Overview *Absalom, Absalom!*
+
+The text of *Absalom, Absalom!* was read in as a txt file. It was then broken into nine chapters and further sub-setted into sentences. The individual words were subsequently "tokenized." The process of tokenization removes capital letters, special characters, and punctuation. It enables the computer to compare words more easily. Each "stop word" was then removed. These are words like: the, a, on, at, etc. that are very frequent with in any text, and do not add to the analysis. The words were then lemmatized. Lemmatization reduces a word to the word stem. For example, Negroes becomes Negro. This way all instances of the concept "Negro" are unified as one instances. This prevents creating separate counts for words like Negro, Negroes, and Negro's.
+
+The resulting slate of words was then tagged as either racially charged by adding a column called race_word and indicating TRUE or FALSE for each word. This was done by creating a list of racial words and joining it to the data table through a left sided join. Essentially, it checks to see any time a word like "Negro", "Nigger", or "Octoroon" occurs and tags it as TRUE. With this preprocessing complete it is possible to provide some key statistical insights.
+
+### Word Frequency
+
+The chart below shows the ten most frequent non-racial words and racial words in the text. Hovering over the the individual bars reveals their precise number, and clicking on TRUE and FALSE turns that particular series on and off.
 
 ```{r load_packages}
 library(tidyverse)
@@ -80,22 +87,25 @@ absalom_stats <- absalom_tidy %>%
 #Mark each race word as true and then convert every non-race word as false. then add a column for the lemmatized words.
 
 absalom_race_stats <- absalom_stats %>% 
-                      left_join(race_words) %>% 
-                      mutate(race_word = replace_na(race_word,FALSE)) %>% 
-                       mutate(word_lemma = textstem::lemmatize_words(word))   
-
+                      mutate(word_lemma = textstem::lemmatize_words(word)) %>% 
+                      mutate(word_lemma = str_remove_all(word_lemma,"'s")) %>% 
+                     left_join(race_words, by="word_lemma") %>% 
+                    mutate(race_word = replace_na(race_word,FALSE))  
+                          
 ```
 
 
 
-
-
-```{r message=FALSE, results='markup'}
+```{r create_plot}
 absalom_plot <- absalom_race_stats %>% 
     group_by(race_word) %>% 
     count(word_lemma, sort = TRUE) %>%
     top_n(10) %>%
-    mutate(word_lemma = reorder(word_lemma, n))  
+    mutate(word_lemma = reorder(word_lemma, n))
+```
+
+
+```{r message=TRUE, results='markup', fig.cap="Note: The chart displays the most frequent words based on word stem.<br> This prevents counting <i>father</i> and <i>father's</i> separately."}
 
 fig <- plot_ly(absalom_plot,
   x = ~word_lemma,
@@ -105,32 +115,79 @@ fig <- plot_ly(absalom_plot,
 )
 
 fig <- fig %>% 
-        layout(title = "Most Frequent Word by Non-Race and Race Words",
+        layout(title = "Ten Most Frequent Word by Non-Race and Race Words",
          xaxis = list(title = "Word Stem"),
          yaxis = list(title = "Number of Words"),
-              legend=list(title=list(text='<b> Race Word </b>')),
-         annotations = 
-     list(x = 1, y = -0.1, text = "Note: The chart displays the most frequent words based on word stem.<br>This prevents counting <i>father</i> and <i>father's</i> separately.", 
-      showarrow = F, xref='paper', yref='paper', 
-      xanchor='center', yanchor='auto', xshift=-100, yshift=250,
-      font=list(size=11, color="grey")))
-
+              legend=list(title=list(text='<b>Race Word</b>')))
 
 fig
 
     
 
-
-
 ```
 
+What is immediately noticeable is that the word "nigger" is the most frequent racial term. It exceeds the word "negro" by 50 counts. It occurs about a third as infrequently as the word Henry (the main character) and twice as infrequently as the racially ambigious Charles Bon. Importantly, the occurrences of the individual names of characters is not the same as the number of times they actually occur in the text. After all, the pronouns "he" or "she" could equally well denote a character, but that is not shown here.
 
+### Collocations
 
 
 ```{r}
-#absalom_sentiment <- 
+
+#Create a bigram of the Absalom DF
+absalom_bigrams <- absalom_df %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2)
+
+#This function first separates the bigram into two words, lemmatizes each, tags the racial words, then removes all non-racial words. 
+race_bigrams <- absalom_bigrams %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  mutate(word_lemma1 = textstem::lemmatize_words(word1)) %>%
+  mutate(word_lemma1 = str_remove_all(word_lemma1, "'s")) %>%
+  mutate(word_lemma2 = textstem::lemmatize_words(word2)) %>%
+  mutate(word_lemma2 = str_remove_all(word_lemma2, "'s")) %>%
+  left_join(race_words, by = c("word_lemma1" = "word_lemma")) %>%
+  left_join(race_words, by = c("word_lemma2" = "word_lemma"))  %>%
+  mutate(race_word = ifelse(race_word.x == TRUE |
+                              race_word.y == TRUE, TRUE,
+                            ifelse(NA))) %>%
+  filter(race_word == TRUE) %>%
+  mutate(bigram = paste(word_lemma1, word_lemma2)) %>%
+  select (-race_word.x,-race_word.y)
+
+#This function filters all the stop words out of the bigrams
+
+bigrams_filtered <- race_bigrams %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+# new bigram counts:
+bigram_counts <- bigrams_filtered %>%
+  count(bigram, sort = TRUE) %>% 
+  mutate(bigram = reorder(bigram, n)) %>% 
+  top_n(15)
 
 
 ```
 
+TODO Explain Cooccurrence
+
+
+```{r bigram_chart, fig.cap="Note: This plot shows the most common cooccurrence of racial language in Absalom, Absalom!"}
+
+
+bigram_plot <- plot_ly(bigram_counts,
+  x = ~n,
+  y = ~bigram,
+  type = "bar",
+  orientation = 'h'
+  )
+      
+     bigram_plot <-  bigram_plot %>% 
+        layout(title = "Fifteen Most Frequent Race Bigrams",
+         xaxis = list(title = "Number of Bigrams"),
+         yaxis = list(title = "Bigrams")
+     )
+
+bigram_plot
+
+```
 
