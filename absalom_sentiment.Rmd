@@ -50,6 +50,7 @@ library(plotly)
 library(ggthemes)
 library(textstem)
 library(shiny)
+library(ggiraphExtra)
 ```
 
 ```{r load_text}
@@ -69,8 +70,8 @@ race_words <- read_csv("race_words.csv")
 absalom_tidy <- absalom_df %>%
   unnest_regex(text, text, pattern = "—[:digit:]—") %>%
   mutate(chapter = row_number()) %>%
-  unnest_regex(sentences, text, pattern = "[.?!]") %>%
-  mutate(sentence_number = row_number())  %>%
+  unnest_regex(sentences, text, pattern = "[.?!]") %>% 
+  mutate(sentence_number = row_number()) %>%  
   unnest_tokens(word, sentences)
 ```
 
@@ -191,7 +192,7 @@ bigram_plot <- plot_ly(bigram_counts,
      )
 
 div(bigram_plot,align='center')
-div("Figure 1: This plot shows the most common cooccurrence of racial language in Absalom, Absalom!")
+div("Figure 2: This plot shows the most common cooccurrence of racial language in Absalom, Absalom!")
 
 ```
 
@@ -231,6 +232,12 @@ In their use of either "wild niggers" or "wild negro", Quentin and Rosa Coldfiel
 
 It is initial instance of the phrase uttered by Rosa that is carried forward throughout the text. Indeed, the enslaved people are continuously associated with the word "wild", and it is Quentin whose narrative uses the racial epiteth more prominently than others.
 
+
+### Distribution of racial language
+
+We can also look at the word frequency data temporally by casting it across the chapters. This will indicate when a particular word is used often. It may be that some racial words are used in one part of the book and not in others. This gives some indication as to its value in the narrative.   
+
+
 ```{r bubble_chart}
 #Get the five most frequent words and group their use by chapter.
 
@@ -249,7 +256,6 @@ absalom_race_bubble <- absalom_race_stats %>%
                         mutate(y = 6-row_number()) %>% 
                         mutate(n = as.integer(as.character(n)))
 
-absalom_race_bubble
 
 ```
 
@@ -297,6 +303,116 @@ fig_bubble <- fig_bubble %>%
   )
 
 
-fig_bubble
+div(fig_bubble, align='center')
+div("Figure 4: The above bubble chart shows the frequency of racial word use by chapter. Immediately noticeable is that the overwhelming majority of the use of hte word 'nigger' appear in chapter 7")
+
 ```
+  
+It is clear that chapter 7 is particularly racially charged. While certain narrators predominate in certain chapters, it would be a mistake to attribute particular words to particular characters based on this raw data. We may recall that chapter 7 is a nested narration in which we are told the story of Thomas Sutpen as related it to General Compson to Quentin and finally to Shreve. There are several narrative frames that would make it very difficult to determine whose language this is. What is apparent is that the chapter in which most of Sutpen's life is revealed is steeped in pejorative racist language. Indeed, in all the other chapters the word negro or black is used more frequently to describe African Americans. 
+
+## Part 2: Sentiment Analysis and Racial Language
+
+Sentiment analysis is a field of CL that tries to establish the emotional valence of a segment of text. It does so through sentiment libraries. These are words that have been hand coded to indicate certain emotions like: joy, sadness, surprise, or, more broadly, positive and negative. In general, sentiment libraries are used for analyzing social media or large data sets where the narrative data tends to be less complex and operates at scale. Thus, while the sentiment dictionary might not match each sentiment exactly, in the aggregate the predominant emotion rises to the top.   
+
+For literary works, sentiment analysis is far more speculative and merits quite some caution. Without a specially trained dictionary for a specific corpus, sentiment analysis can reveal certain patterns around words but it is unclear what the margin of error might be. There are, so to speak, unknown unknowns. This is particularly true of Faulkner who uses many words that are emotionally charged that might not make their way into a sentiment library, or who uses words like "unamaze" to negate a particular emotion, in this case surprise. Any results that sentiment analysis generates should therefore be seen as a prompt into further inquiry and not a final result.
+
+### Sentiment Analysis Across a Text
+
+One of the most basic ways to think through sentiment are the positive and negative sentiments across a text. The basic procedure is to tag each positive and negative sentiment in a text and then tabulate these chunks by some logical unit, be it a sentence, paragraph, or chapter. This will give you the total sentiment of that particular unit. Since, we are interested in the emotion surrounding racial words, it makes the most sense to set the unit boundary at the sentence level. This produces a very granular chart, but for *Absalom, Absalom!* this granularity is very revealing.
+
+```{r text_sentiment}
+#Sentiment analysis across the text
+race_sentences <- absalom_race_stats %>% 
+                    filter(race_word==TRUE) %>% 
+                    distinct()
+
+
+ absalom_sentiment <- absalom_race_stats %>%
+  left_join(get_sentiments("bing")) %>%  
+  group_by(sentence_number) %>% 
+  count(sentence_number, sentiment) %>% 
+  spread(sentiment, n, fill=0) %>% 
+          mutate(sentiment = positive - negative)
+ 
+ absalom_sentiment_race <- absalom_sentiment %>% 
+                            left_join(race_sentences)  %>% 
+                            select(-word, -word_lemma)   %>% 
+                            mutate(race_word = replace_na(race_word, FALSE)) %>%  
+                            distinct() %>% 
+                            spread(race_word, sentiment, fill=0) %>%  
+                            rename(Race = 7, Regular = 6)
+
+
+  
+```
+
+
+```{r sentiment_plot}
+
+text_sentiment_plot <- plot_ly(absalom_sentiment_race,
+  x = ~sentence_number,
+  y = ~Regular,
+  name='Regular',
+    type = "bar"
+    )
+text_sentiment_plot <- text_sentiment_plot %>% 
+                      add_trace(y = ~Race, name = 'Race')
+
+text_sentiment_plot <- text_sentiment_plot %>% layout(title = "Sentiment surrounding racial and non-racial words in <i>Absalom, Absalom</i>",
+         xaxis = list(title = "<b>Sentence Number</b>"),
+         yaxis = list(title = "<b>Sentiment Count</b>")
+         )
+
+div(text_sentiment_plot, align='center')
+div("Figure 5: The line chart shows the positive and negative of sentences. Whenever a sentence had a racial word in it, it was coded as orange.")
+
+```
+
+One of the immediate things that stands out about this chart is just how negatively charged sentences in *Absalom, Absalom!* are. There are very few positive sentences in this text. The sentences that contain racial worlds are predominately negative. Indeed, sentence with the most negative emotions attached to it is racially charged. It is sentence 1421 which at 969 words is also one of the longest sentences in the text. This is the passage that speaks of Sutpen's desolution in the wake of the Civil War and his drunken parleys with Wash Jones. The reason for the overabundance of negative emotions is both the sentence length and its grotesque content.
+
+### Sentiment by Word
+
+It is also possible to think through the sentiments attached to a particular word. This can be especially salient when considering the emotions around a character, a process that can be quite involved. One of the things we might want to know is that when Faulkner uses racial language what types of emotions do the surrounding words point to. We can map all of these emotions through a radar plot. A radar plot uses multiple axes and the force towards that axes to demonstrate multivariate differences. This is at best a conceptual depiction. Emotions do not work in opposites, and therefore a radar plot pointing strongly in one direction does not necessarily mean that it's opposite is absent, or even opposite. After all, what is the opposite of surprise?
+
+
+```{r race_sentiments}
+absalom_nrc_sent <- absalom_race_stats %>%
+    left_join(get_sentiments("nrc"))  %>% 
+  count(sentence_number, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  select(1:11)
+  
+
+absalom_race_nrc <- absalom_race_stats %>% 
+                    inner_join(absalom_nrc_sent) %>% 
+                    filter(race_word==TRUE) %>% 
+                    group_by(word_lemma) %>%
+                    summarise(across(anger:trust, sum)) %>% 
+                    select(-positive,-negative) %>% 
+                    mutate(total = rowSums(across(where(is.numeric))))  %>% 
+                      arrange(desc(total)) %>%
+                    head(5)  %>% #Change number to include more or fewer entities
+                       mutate(across(anger:trust, .fns = ~ round((. / total) * 100))) %>% 
+                    select(-total) %>% 
+                    rename(Word = word_lemma) 
+                    
+  colnames(absalom_race_nrc) <- stringr::str_to_title(colnames(absalom_race_nrc))
+
+```
+
+
+
+```{r radar_plot}
+
+ggRadar(
+  data = absalom_race_nrc,
+  mapping = aes(color = Word, facet = Word),
+  rescale = FALSE,
+  interactive = TRUE,
+  use.label = TRUE,
+  size = 2,
+  legend.position = "right"
+)
+```
+
 
