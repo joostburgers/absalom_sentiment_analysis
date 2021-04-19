@@ -245,14 +245,58 @@ absalom_race_bubble <- absalom_race_stats %>%
                         count(word_lemma) %>% 
                         group_by(chapter) %>% 
                         mutate(n = reorder(n, word_lemma)) %>% 
-                        mutate(y = row_number())
+                        mutate(word_lemma = str_to_title(word_lemma)) %>% 
+                        mutate(y = 6-row_number()) %>% 
+                        mutate(n = as.integer(as.character(n)))
+
+absalom_race_bubble
+
 ```
 
 
 ```{r buble_chart_plot}
 
-fig_bubble <- plot_ly(absalom_race_bubble, x = ~chapter, y = ~y, text = ~word_lemma, type = 'scatter', mode = 'markers',
-        marker = list(size = ~n, color=~y, opacity = 0.5))
+
+ylabels <- absalom_race_bubble %>%
+  ungroup() %>%
+  distinct(word_lemma) 
+
+fig_bubble <-
+  plot_ly(
+    absalom_race_bubble,
+    x = ~ chapter,
+    y = ~ y,
+    name=~word_lemma,
+    color=~word_lemma,
+    type = 'scatter',
+    mode = 'markers',
+    size = ~n,
+    sizes = c(min(absalom_race_bubble$n), max(absalom_race_bubble$n)),
+    hoverinfo='text',
+    text= ~paste('Count:', n),
+      marker = list(
+        sizemode='diameter',
+                  opacity = 0.5
+        )
+  )
+
+fig_bubble <- fig_bubble %>%
+  layout(
+    title = "Use of Top 5 Racial words by Chapter <i>Absalom, Absalom!</i>",
+    xaxis = list(title = "<b>chapter</b>",
+                 showgrid = FALSE,
+                 tickvals = ~chapter),
+    yaxis = list(title = "",
+                 showgrid = FALSE,
+                 tickmode='array',
+                 tickvals=c(5,4,3,2,1),
+                 ticktext=ylabels$word_lemma),
+    legend= list(
+                 title=list(text="<b>Racial Word</b>"),
+                itemsizing='constant')
+  )
+
+
 fig_bubble
 ```
 
