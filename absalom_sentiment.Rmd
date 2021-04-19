@@ -394,6 +394,7 @@ absalom_race_nrc <- absalom_race_stats %>%
                     head(5)  %>% #Change number to include more or fewer entities
                        mutate(across(anger:trust, .fns = ~ round((. / total) * 100))) %>% 
                     select(-total) %>% 
+                    mutate(word_lemma= str_to_title(word_lemma)) %>% 
                     rename(Word = word_lemma) 
                     
   colnames(absalom_race_nrc) <- stringr::str_to_title(colnames(absalom_race_nrc))
