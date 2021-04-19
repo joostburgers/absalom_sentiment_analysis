@@ -13,9 +13,9 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE, error=FALSE)
 
 ## Introduction
 
-The following is a brief linguistic analysis of the use of racially charged language in William Faulkner's *Absalom, Absalom!*. Faulkner's representation of race was complicated, just as his own his relationship with race was complex. As a Southern white moderate, he voiced his anguish over the dehumanization of African Americans under Jim Crow segregation, and at the same time could also casually refer to people as "niggers" during the public retelling of a [comic story](https://faulkner.lib.virginia.edu/display/wfaudio02_2.html#wfaudio02_2.2). Indeed, there is no shortage of literature on Faulkner and race in general, and with regards to *Absalom, Absalom!* in particular. Given this extensive critical history, it almost goes without saying, that a computational analysis of word choice, especially with regard to racially charged language, cannot due justice to the complexities and nuances of either the text or Faulkner's broader critical intervention. Nevertheless, using techniques common in corpus linguistics (CL) it is possible to give a birds-eye view of how the use of certain words is patterned, this pattern can then, in turn, inform subsequent close readings. 
+The following is a brief linguistic analysis of the use of racially charged language in William Faulkner's *Absalom, Absalom!*. Faulkner's representation of race was complicated, just as his own his relationship with race was complex. As a Southern white moderate, he voiced his anguish over the dehumanization of African Americans under Jim Crow segregation, and, at the same, time could also casually refer to people as "niggers" during the public retelling of a [comic story](https://faulkner.lib.virginia.edu/display/wfaudio02_2.html#wfaudio02_2.2). Indeed, there is no shortage of literature on Faulkner and race in general, and with regards to *Absalom, Absalom!* in particular. Given this extensive critical history, it almost goes without saying that a computational analysis of word choice, especially with regard to racially charged language, cannot due justice to the complexities and nuances of either the text or Faulkner's broader critical intervention. Nevertheless, using techniques common in corpus linguistics (CL) it is possible to give a birds-eye view of how the use of certain words is patterned. This pattern can then, in turn, inform subsequent close readings. 
 
-The following piece uses several techniques available to standard CL analysis, and one more complex analysis that is exclusively available to practitioners who have access to the [Digital Yoknapatawpha](http://faulkner.iath.virginia.edu/) data set. These different techniques have been split into different parts.
+The following piece uses several techniques available to standard CL analysis, and one more complex analysis that is exclusively available to practitioners who have access to the *[Digital Yoknapatawpha](http://faulkner.iath.virginia.edu/)* data set. These different techniques have been split into their own sections.
 
 - **Part 1: Statistical Overview**  
           Analysis of the general linguistic pattern of the texts including word frequency and word           correlations.
@@ -24,16 +24,16 @@ The following piece uses several techniques available to standard CL analysis, a
 - **Part 3: Character Sentiment Analysis**  
           Sentiment analysis of specific characters. Using the data available in the *DY* database,           a sentiment pattern around certain characters was created.
           
-All of the data was generated using the R programming language using the `tidyverse` suite of packages. The full repository is available at https://github.com/joostburgers/absalom_sentiment_analysis Due to copyright issues the repository does not include the Absalom, Absalom text file used for data analysis.
+All of the data was generated using the R programming language using the `tidyverse` suite of packages for the calculations and the `plotly` library for the graphics. The full repository is available at https://github.com/joostburgers/absalom_sentiment_analysis Due to copyright issues the repository does not include the Absalom, Absalom text file used for data analysis.
 
 
 ## Part 1: Statistical Overview *Absalom, Absalom!*
 
 ### Text pre-processing
 
-With any textual analysis, some pre-processing is required. The steps that follow are standard procedures in CL. The text of *Absalom, Absalom!* was read in as a txt file. It was then broken into nine chapters, and further sub-setted into sentences. The individual words were subsequently "tokenized." The process of tokenization removes capital letters, special characters, and punctuation. It enables the computer to compare words more easily. Each "stop word" was then removed. These are words like: the, a, on, at, etc. that are very frequent with in any text, and do not add to the analysis. The words were then lemmatized. Lemmatization reduces a word to the word stem. For example, Negroes becomes Negro. This way all instances of the concept "Negro" are unified as one instances. This prevents creating separate counts for words like Negro, Negroes, and Negro's.
+With any textual analysis, some pre-processing is required. The steps that follow are standard procedures in CL. The text of *Absalom, Absalom!* was read in as a txt file. It was then broken into nine chapters, and further sub-setted into sentences. The individual words were subsequently "tokenized." The process of tokenization removes capital letters, special characters, and punctuation. It enables the computer to compare words more easily. Each "stop word" was then removed. These are words like: the, a, on, at, etc. that are very frequent with in any text, and do not add to the analysis. The words were then lemmatized. Lemmatization reduces a word to the word stem. For example, Negroes becomes Negro. This way all instances of the concept "Negro" are unified as one instance. This prevents creating separate counts for words like Negro, Negroes, and Negro's.
 
-The resulting slate of words was tagged as either racially charged by adding a column called race_word and indicating TRUE or FALSE for each word. This was done by creating a list of racial words and joining it to the data table through a left sided join. Essentially, it checks to see any time a word like "Negro", "Nigger", or "Octoroon" occurs and tags it as TRUE. With this pre-processing complete it is possible to provide some key statistical insights.
+The resulting slate of words was tagged as racially charged by adding a column called race_word and indicating TRUE or FALSE for each word. This was done by creating a list of racial words and joining it to the data table through a left sided join. Essentially, it checks to see if a word like "Negro", "White", or "Octoroon" occurs and tags it as TRUE. Such a list of racial words is necessarily imperfect as the words "black" and "white" could also denote colors and not racial designations. Still, with this pre-processing complete it is possible to provide some key statistical insights.
 
 ### Word Frequency
 
@@ -127,7 +127,7 @@ absalom_word_frequency_plot <- absalom_word_frequency_plot %>%
   )
 
 div(absalom_word_frequency_plot, align = "center")
-div("Figure 1: The chart displays the most frequent words based on word stem.<br> This prevents counting 'father' and 'father's' separately.")
+div("Figure 1: The chart displays the most frequent words based on word stem. This prevents counting 'father' and 'father's' separately.")
 
 ```
 
@@ -135,7 +135,7 @@ What is immediately noticeable is that the word "nigger" is the most frequent ra
 
 ### Collocations
 
-Collocation is a process of determining what words appear together. This is done through a process of creating n-grams, where n is the number of words that might match in a sequence. By determining the n-gram around particular words, we can get a better sense of the context. For example, her research of British Newspapers, Dawn Archer has shown that the most common bigram (n-gram of two) for Muslim is "Muslim terrorist", certainly this strong association between these two words indicates how Muslim's are represented in the British media.
+Collocation is a process of determining what words appear together. This is done by creating n-grams, where n is the number of words that might match in a sequence. By determining the n-gram around particular words, we can get a better sense of the context. For example, in her research of British Newspapers, Dawn Archer has shown that the most common bigram (n-gram of two) for Muslim is "Muslim terrorist."(CITE) Certainly this strong association between these two words indicates how Muslim's are represented in the British media. In similar fashion, we get a better sense of how Faulkner is using racial langauge by looking at the words immediately before and after them.
 
 ```{r}
 
@@ -226,16 +226,16 @@ div(wild_plot, align='center')
 div("Figure 3: The above chart shows the respective use of the phrases 'Wild Nigger' and 'Wild Negro'. It was created by manually searching for the terms in the text and recovering the speaker.")
 ```
 
-In their use of either "wild niggers" or "wild negro", Quentin and Rosa Coldfield share an inverse relationship. This is curious because it is Rosa who first uses the phrase when referring to the demonic Sutpen arriving in Yoknapatawpha:
+In their use of either "wild niggers" or "wild negro," Quentin and Rosa Coldfield share an inverse relationship. This is curious because it is Rosa who first uses the phrase when referring to the demonic Sutpen arriving in Yoknapatawpha:
 
 >Out of quiet thunderclap he would abrupt (man-horse-demon) upon a scene peaceful and decorous as a schoolprize water color, faint sulphur-reek still in hair clothes and beard, with grouped behind him his band of wild niggers like beasts half tamed to walk upright like men, in attitudes wild and reposed, and manacled among them the French architect with his air grim, haggard, and taller-ran. 
 
-It is initial instance of the phrase uttered by Rosa that is carried forward throughout the text. Indeed, the enslaved people are continuously associated with the word "wild", and it is Quentin whose narrative uses the racial epiteth more prominently than others.
+It is initial instance of the phrase uttered by Rosa that is carried forward throughout the text. It is therefore interesting that Quentin takes this note and appears to repeat it throughout the text. What's more, Rosa's initial association between enslavement and wildness is one that will echo throughout the text. This, despite the fact, that she says it only once.
 
 
 ### Distribution of racial language
 
-We can also look at the word frequency data temporally by casting it across the chapters. This will indicate when a particular word is used often. It may be that some racial words are used in one part of the book and not in others. This gives some indication as to its value in the narrative.   
+We can also look at the word frequency data temporally by casting it across the chapters. This indicates the frequency of a particular word in each chapter. It may be that some racial words are used in one part of the book and not in others. This gives some indication as to its value in the narrative.   
 
 
 ```{r bubble_chart}
@@ -308,13 +308,13 @@ div("Figure 4: The above bubble chart shows the frequency of racial word use by 
 
 ```
   
-It is clear that chapter 7 is particularly racially charged. While certain narrators predominate in certain chapters, it would be a mistake to attribute particular words to particular characters based on this raw data. We may recall that chapter 7 is a nested narration in which we are told the story of Thomas Sutpen as related it to General Compson to Quentin and finally to Shreve. There are several narrative frames that would make it very difficult to determine whose language this is. What is apparent is that the chapter in which most of Sutpen's life is revealed is steeped in pejorative racist language. Indeed, in all the other chapters the word negro or black is used more frequently to describe African Americans. 
+It is clear that chapter 7 is particularly racially charged. While certain narrators predominate in certain chapters, it would be a mistake to attribute particular words to particular characters based on this raw data. We may recall that chapter 7 is a nested narration in which we are told the story of Thomas Sutpen as related it to General Compson whot told it to Mr. Compson who told it to Quentin who is telling it to Shreve. There are so many narrative frames that would make it very difficult to determine whose language this is. What is apparent, is that the chapter in which most of Sutpen's life is revealed is steeped in pejorative racist language. To be sure, in all the other chapters the word negro or black is used more frequently to describe African Americans. 
 
 ## Part 2: Sentiment Analysis and Racial Language
 
 Sentiment analysis is a field of CL that tries to establish the emotional valence of a segment of text. It does so through sentiment libraries. These are words that have been hand coded to indicate certain emotions like: joy, sadness, surprise, or, more broadly, positive and negative. In general, sentiment libraries are used for analyzing social media or large data sets where the narrative data tends to be less complex and operates at scale. Thus, while the sentiment dictionary might not match each sentiment exactly, in the aggregate the predominant emotion rises to the top.   
 
-For literary works, sentiment analysis is far more speculative and merits quite some caution. Without a specially trained dictionary for a specific corpus, sentiment analysis can reveal certain patterns around words but it is unclear what the margin of error might be. There are, so to speak, unknown unknowns. This is particularly true of Faulkner who uses many words that are emotionally charged that might not make their way into a sentiment library, or who uses words like "unamaze" to negate a particular emotion, in this case surprise. Any results that sentiment analysis generates should therefore be seen as a prompt into further inquiry and not a final result.
+For literary works, sentiment analysis is far more speculative and merits quite some caution. Without a specially trained dictionary for a specific corpus, sentiment analysis can reveal certain patterns around words, but it is unclear what the margin of error might be. There are, so to speak, unknown unknowns. This is particularly true of Faulkner who uses many words that are emotionally charged that might not make their way into a sentiment library, or who uses words like "unamaze" to negate a particular emotion, in this case surprise. Any results that sentiment analysis generates should therefore be seen as a prompt into further inquiry and not a final result.
 
 ### Sentiment Analysis Across a Text
 
@@ -343,7 +343,6 @@ race_sentences <- absalom_race_stats %>%
                             rename(Race = 7, Regular = 6)
 
 
-  
 ```
 
 
@@ -368,11 +367,11 @@ div("Figure 5: The line chart shows the positive and negative of sentences. When
 
 ```
 
-One of the immediate things that stands out about this chart is just how negatively charged sentences in *Absalom, Absalom!* are. There are very few positive sentences in this text. The sentences that contain racial worlds are predominately negative. Indeed, sentence with the most negative emotions attached to it is racially charged. It is sentence 1421 which at 969 words is also one of the longest sentences in the text. This is the passage that speaks of Sutpen's desolution in the wake of the Civil War and his drunken parleys with Wash Jones. The reason for the overabundance of negative emotions is both the sentence length and its grotesque content.
+One of the immediate things that stands out about this chart is just how negatively charged sentences in *Absalom, Absalom!* are. There are very few positive sentences in this text. The sentences that contain racial words are predominately negative. In fact, the sentence with the most negative emotions attached to it is also racially charged. This is sentence 1421 which, at 969 words, is also one of the longest sentences in the text. If you do not know *Absalom, Absalom!* by sentence, and I hope you don't, this is the passage that speaks of Sutpen's dissolution in the wake of the Civil War, and his drunken parleys with Wash Jones. The reason for the overabundance of negative emotions is both the sentence length and its grotesque content.
 
 ### Sentiment by Word
 
-It is also possible to think through the sentiments attached to a particular word. This can be especially salient when considering the emotions around a character, a process that can be quite involved. One of the things we might want to know is that when Faulkner uses racial language what types of emotions do the surrounding words point to. We can map all of these emotions through a radar plot. A radar plot uses multiple axes and the force towards that axes to demonstrate multivariate differences. This is at best a conceptual depiction. Emotions do not work in opposites, and therefore a radar plot pointing strongly in one direction does not necessarily mean that it's opposite is absent, or even opposite. After all, what is the opposite of surprise?
+It is also possible to think through the sentiments attached to a particular word. This can be especially salient when considering the emotions around a character, a process that can be quite involved. One of the things we might want to know is that when Faulkner uses racial language what types of emotions do the surrounding words indicate. In a sense, we are creating an emotional context for each word. We can map all of these emotions through a radar plot. A radar plot uses multiple axes, and the extent to which the plots cover the axes demonstrate the multivariate differences. This is at best a conceptual depiction. Emotions do not work in opposites, and therefore a radar plot pointing strongly in one direction does not necessarily mean that it's opposite is absent, or even opposite. After all, what is the opposite of surprise? Trust? Joy? Indifference? These plots are best seen as showing "pulls" towards certain emotions, but they do not negate other emotions.
 
 
 ```{r race_sentiments}
@@ -414,6 +413,15 @@ ggRadar(
   size = 2,
   legend.position = "right"
 )
+
+div("Figure 6: Radar charts of the top five most used racial terms and their respective emotions.")
 ```
 
+The radar charts are quite inscrutable, and it would be a mistake to attach too much value to them. For one, they all appear to exhibit a relatively similar pattern. This is perhaps owing to the fact that there is not a significant difference between the sentences in which these words are used, and the sentences where racial language is not being used. There are some slight differences between levels of particular emotions, but statistical analysis would likely reveal that these differences could be random.  
+The only real benefit of viewing the the words in their emotional context is that it appears that their context is similar to that of the whole book. Steeped in fear and sadness, this text is concerned with issues of trust, and leaves little room for joy or surprise. The emotional radar of this texts reads like a blurb for most any other Faulkner novel written during his canonical period! 
 
+Kidding aside, part of the reason why the results might not be all that revealing is because the sentiment library might not be equipped to deal with such a complex text. The other issue is that word-level analysis is still relatively superficial. For example, if we wanted to maker sure that every counted instance of "black" and "white" referred to race, we would have to do so manually. Second, we might know the emotional context of the word, but not the syntactical context. For instance, when Rosa tells of the time when Sutpen would fight his enslaved workers, she remarks her sister's emotion when Ellen, "seeing not the two black beasts she had expected to see, but instead a white one and a black one." Clearly, the negation of the earlier African Americans is then overturned by the appearance of Sutpen and one of the people he has enslaved. The emotions concern Sutpen and the enslaved person both, but not the earlier two African Americans who are also counted by dint of being in the same sentence. As mentioned previously, it is because of instances like this that sentiment analysis works better at scale because in the aggregate the emotional signal comes across as less distorted. In order to get a clearer reading of emotions in a particular context we need a more consistent unit of analysis. Fortunately, *DY* has created a database of each character in each event and we can establish the emotional context of specific characters and individuate them by race.
+
+## Part 3: Character Sentiment Analysis
+
+To be continued....
