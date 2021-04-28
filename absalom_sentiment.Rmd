@@ -53,6 +53,21 @@ library(shiny)
 library(ggiraphExtra)
 ```
 
+```{r load_color_scheme, echo=FALSE}
+#This is where you create your own custom color palette for the traces. 
+faulkner_colorway = c("#0a6b0c", "#2c30a0", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf")
+
+#This controls the background color for the entire chart. Probably best left white.
+faulkner_paperbackground = c("#fff8cf")
+
+#This controls the background for the plot. Probably best left white.
+faulkner_plotcolor = c("#e8e5d3")
+
+
+```
+
+
+
 ```{r load_text}
 #Read in the text
 absalom_df <- as.data.frame(read_file("Faulkner_William_Absalom_Absalom.txt"))
@@ -115,7 +130,8 @@ absalom_word_frequency_plot <- plot_ly(
   y = ~ n,
   type = "bar",
   color = ~ race_word,
-  hovertemplate=paste('Count: %{y}<extra></extra>')
+  colors= faulkner_colorway,
+   hovertemplate=paste('Count: %{y}<extra></extra>')
   )
 
 absalom_word_frequency_plot <- absalom_word_frequency_plot %>%
@@ -123,7 +139,10 @@ absalom_word_frequency_plot <- absalom_word_frequency_plot %>%
     title = "Ten Most Frequent Word by Non-Race and Race Words",
     xaxis = list(title = "Word Stem"),
     yaxis = list(title = "Number of Words"),
-    legend = list(title = list(text = '<b>Race Word</b>'))
+    legend = list(title = list(text = '<b>Race Word</b>')),
+    paper_bgcolor = faulkner_paperbackground,
+    plot_bgcolor = faulkner_plotcolor
+    
   )
 
 div(absalom_word_frequency_plot, align = "center")
@@ -188,7 +207,10 @@ bigram_plot <- plot_ly(bigram_counts,
      bigram_plot <-  bigram_plot %>% 
         layout(title = "Fifteen Most Frequent Race Bigrams",
          xaxis = list(title = "Number of Bigrams"),
-         yaxis = list(title = "Bigrams")
+         yaxis = list(title = "Bigrams"),
+         colorway=faulkner_colorway,
+         paper_bgcolor = faulkner_paperbackground,
+    plot_bgcolor = faulkner_plotcolor
      )
 
 div(bigram_plot,align='center')
@@ -208,19 +230,25 @@ wild_use <- read_csv("wild_use.csv")
 
 
 ```{r plot_wild_use, fig.cap="Note: The above chart shows the respective use of the phrases 'Wild Nigger' and 'Wild Negro'. It was created by manually searching for the terms in the text and recovering the speaker."}
-wild_plot <- plot_ly(wild_use,
-  x = ~Speaker,
-  y = ~Wild_Nigger,
-  name='Wild Nigger',
+wild_plot <- plot_ly(
+  wild_use,
+  x = ~ Speaker,
+  y = ~ Wild_Nigger,
+  name = 'Wild Nigger',
   type = "bar",
-     hovertemplate=paste('Count: %{y}<extra></extra>')
-    )
-wild_plot <- wild_plot %>% 
-  add_trace(y = ~Wild_Negro, name = 'Wild Negro')
+  hovertemplate = paste('Count: %{y}<extra></extra>')
+)
+wild_plot <- wild_plot %>%
+  add_trace(y = ~ Wild_Negro, name = 'Wild Negro',color=faulkner_colorway[2])
 
-wild_plot <- wild_plot %>% layout(title = "Use of 'Wild Nigger' and 'Wild Negro'<br> by different speakers in <i>Absalom, Absalom!</i>",
-         xaxis = list(title = "<b>Speaker</b>"),
-         yaxis = list(title = "<b>Count</b>"))
+wild_plot <-
+  wild_plot %>% layout(colorway=faulkner_colorway,
+    title = "Use of 'Wild Nigger' and 'Wild Negro'<br> by different speakers in <i>Absalom, Absalom!</i>",
+    xaxis = list(title = "<b>Speaker</b>"),
+    yaxis = list(title = "<b>Count</b>"),
+    paper_bgcolor = faulkner_paperbackground,
+    plot_bgcolor = faulkner_plotcolor
+  )
 
 div(wild_plot, align='center')
 div("Figure 3: The above chart shows the respective use of the phrases 'Wild Nigger' and 'Wild Negro'. It was created by manually searching for the terms in the text and recovering the speaker.")
@@ -274,6 +302,7 @@ fig_bubble <-
     y = ~ y,
     name=~word_lemma,
     color=~word_lemma,
+    colors = faulkner_colorway,
     type = 'scatter',
     mode = 'markers',
     size = ~n,
@@ -299,7 +328,9 @@ fig_bubble <- fig_bubble %>%
                  ticktext=ylabels$word_lemma),
     legend= list(
                  title=list(text="<b>Racial Word</b>"),
-                itemsizing='constant')
+                itemsizing='constant'),
+    paper_bgcolor = faulkner_paperbackground,
+    plot_bgcolor = faulkner_plotcolor
   )
 
 
@@ -355,11 +386,14 @@ text_sentiment_plot <- plot_ly(absalom_sentiment_race,
     type = "bar"
     )
 text_sentiment_plot <- text_sentiment_plot %>% 
-                      add_trace(y = ~Race, name = 'Race')
+                      add_trace(y = ~Race, name = 'Race', color=faulkner_colorway[2])
 
 text_sentiment_plot <- text_sentiment_plot %>% layout(title = "Sentiment surrounding racial and non-racial words in <i>Absalom, Absalom</i>",
          xaxis = list(title = "<b>Sentence Number</b>"),
-         yaxis = list(title = "<b>Sentiment Count</b>")
+         yaxis = list(title = "<b>Sentiment Count</b>"),
+         colorway=faulkner_colorway,
+         paper_bgcolor = faulkner_paperbackground,
+    plot_bgcolor = faulkner_plotcolor
          )
 
 div(text_sentiment_plot, align='center')
@@ -408,6 +442,7 @@ ggRadar(
   data = absalom_race_nrc,
   mapping = aes(color = Word, facet = Word),
   rescale = FALSE,
+  colour = faulkner_colorway,
   interactive = TRUE,
   use.label = TRUE,
   size = 2,
