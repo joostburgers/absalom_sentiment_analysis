@@ -42,6 +42,8 @@ The chart below shows the ten most frequent non-racial words and racial words in
 ```{r load_packages}
 library(tidyverse)
 library(tidytext)
+library(syuzhet)
+
 library(stringi)
 library(htmlTable)
 library(stringr)
@@ -54,15 +56,14 @@ library(ggiraphExtra)
 ```
 
 ```{r load_color_scheme, echo=FALSE}
-#This is where you create your own custom color palette for the traces. 
-faulkner_colorway = c("#0a6b0c", "#2c30a0", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf")
+#This is where you create your own custom color palette for the traces.
+faulkner_colorway = c("#132C53","#F27A18","#ae0700","#79b473","#38726c","#76bed0","#6b2d5c","#448b2d","#e6d812")
 
 #This controls the background color for the entire chart. Probably best left white.
-faulkner_paperbackground = c("#fff8cf")
+faulkner_paperbackground = c("#ffffff")
 
 #This controls the background for the plot. Probably best left white.
-faulkner_plotcolor = c("#e8e5d3")
-
+faulkner_plotcolor = c("#ffffff")
 
 ```
 
@@ -79,11 +80,15 @@ colnames(absalom_df) <- "text"
 race_words <- read_csv("race_words.csv")
 ```
 
+```{r}
+  absalom_events <- read.csv("absalom_sentences_export.csv")
+```
+
 
 ```{r unnest_text}
 #unnest the text by sentence and then label each chapter number and sentence number.
 absalom_tidy <- absalom_df %>%
-  unnest_regex(text, text, pattern = "—[:digit:]—") %>%
+  unnest_regex(text, text, pattern = "Chapter [:digit:]") %>%
   mutate(chapter = row_number()) %>%
   unnest_regex(sentences, text, pattern = "[.?!]") %>% 
   mutate(sentence_number = row_number()) %>%  
@@ -239,7 +244,7 @@ wild_plot <- plot_ly(
   hovertemplate = paste('Count: %{y}<extra></extra>')
 )
 wild_plot <- wild_plot %>%
-  add_trace(y = ~ Wild_Negro, name = 'Wild Negro',color=faulkner_colorway[2])
+  add_trace(y = ~ Wild_Negro, name = 'Wild Negro')
 
 wild_plot <-
   wild_plot %>% layout(colorway=faulkner_colorway,
@@ -311,8 +316,8 @@ fig_bubble <-
     text= ~paste('Count:', n),
       marker = list(
         sizemode='diameter',
-                  opacity = 0.5
-        )
+                  opacity = 0.8
+            )
   )
 
 fig_bubble <- fig_bubble %>%
@@ -331,7 +336,8 @@ fig_bubble <- fig_bubble %>%
                 itemsizing='constant'),
     paper_bgcolor = faulkner_paperbackground,
     plot_bgcolor = faulkner_plotcolor
-  )
+    
+    )
 
 
 div(fig_bubble, align='center')
@@ -386,7 +392,7 @@ text_sentiment_plot <- plot_ly(absalom_sentiment_race,
     type = "bar"
     )
 text_sentiment_plot <- text_sentiment_plot %>% 
-                      add_trace(y = ~Race, name = 'Race', color=faulkner_colorway[2])
+                      add_trace(y = ~Race, name = 'Race')
 
 text_sentiment_plot <- text_sentiment_plot %>% layout(title = "Sentiment surrounding racial and non-racial words in <i>Absalom, Absalom</i>",
          xaxis = list(title = "<b>Sentence Number</b>"),
@@ -459,4 +465,206 @@ Kidding aside, part of the reason why the results might not be all that revealin
 
 ## Part 3: Character Sentiment Analysis
 
-To be continued....
+
+
+### scratch pad
+```{r}
+#Tidy the begin_word vector by unnesting, deleting any special curly quotes, collapse them back by eventID
+
+
+absalom_events_tidy_begin <- absalom_events %>%
+  unnest_tokens(begin_word, begin_word) %>% 
+  mutate(begin_word = gsub("[‘’]", "'", begin_word)) %>% 
+  group_by(EventID) %>%
+  summarize(begin_word = str_c(begin_word, collapse = " ")) %>%
+  ungroup()
+
+#Tidy the end_word vecotr
+
+absalom_events_tidy_end <- absalom_events %>%
+  unnest_tokens(end_word, end_word) %>%
+  mutate(end_word = gsub("[‘’]", "'", end_word)) %>% 
+  group_by(EventID) %>%
+  summarize(end_word = str_c(end_word, collapse = " ")) %>%
+  ungroup()
+
+#Join the tidied begin and end words
+absalom_events_tidy <- absalom_events %>% 
+                        select(-begin_word, -end_word) %>% 
+                        left_join(absalom_events_tidy_begin) %>% 
+                        left_join(absalom_events_tidy_end) 
+                        
+#Convert absalom to a tidy string. The curly quotes were messing up the matching.
+
+absalom_tidy_string <- absalom_df %>% 
+                        mutate(text = gsub("[‘’]", "'", text)) %>% 
+                        unnest_tokens(text, text) %>% 
+                        summarize(text = str_c(text, collapse = " ")) 
+
+
+#Match string in text based on regex between between begin_word and end_word
+
+absalom_event_sentences <- absalom_events_tidy %>%
+  mutate(event_sentence = str_match(
+    absalom_tidy_string$text,
+    paste(
+      "\\s*",
+      absalom_events_tidy$begin_word,
+      "(.*?)\\s*",
+      absalom_events_tidy$end_word
+    ))
+  ) %>% 
+mutate(event_sentence = paste(absalom_events_tidy$begin_word,event_sentence[,2]))
+
+#TODO: There is an issue with the regular expression matching. It is still unclear why some results are not working. As this concerns a relatively small number it is not too much of a concern. At the moment, my suspicion is that the event string is too short and therefore cannot fetch any words after it. In some cases, it is because the types phrase in Drupal does not match the phrase in AA. 
+
+
+#Tidy the DF by unnesting all the words, and removing stop words
+absalom_event_sentences_tidy <- absalom_event_sentences %>% 
+                                unnest_tokens(word, event_sentence)  %>% 
+                                anti_join(stop_words)
+
+#Get sentiments and pivot wide
+event_sentiments <- absalom_event_sentences_tidy %>% 
+left_join(get_sentiments("nrc")) %>%  
+  group_by(EventID) %>% 
+  count(EventID, sentiment) %>% 
+  pivot_wider(names_from = sentiment, values_from = n, values_fill=0) %>% 
+          mutate(sentiment = positive - negative) %>% 
+          select(-12)
+
+sy_event_sentiments <- absalom_event_sentences_tidy$word
+sy_sents <- get_sentiment(sy_event_sentiments) 
+absalom_event_sentences_tidy$sentiment <- sy_sents
+
+absalom_sentiments <- absalom_event_sentences_tidy %>% 
+ 
+  group_by(EventID) %>% 
+  summarise(sentiment = sum(sentiment)) 
+   
+          
+
+```
+
+
+```{r read_all_absalom_events}
+absalom_all_events <- read_csv("absalom_all_events_2021_4_30.csv")
+```
+
+```{r}
+absalom_all_sentiments <-  absalom_all_events %>% 
+                            left_join(event_sentiments)
+
+syuzhet_sentiments <- absalom_all_events %>% 
+                        left_join(absalom_sentiments)
+
+```
+
+
+```{r}
+
+character_sentiment <- absalom_all_sentiments %>% 
+                      group_by(LocationTitle) %>%
+                      summarise(across(anger:trust, sum)) %>% 
+                     #select(-positive,-negative) %>% 
+                      mutate(sentiment = positive-negative) %>% 
+                      mutate(total = rowSums(across(where(is.numeric))))   %>% 
+                      arrange(desc(total)) %>%
+                      head(50)  %>% #Change number to include more or fewer entities
+                       mutate(across(anger:sentiment, .fns = ~ round((. / total) * 100))) %>% 
+                    select(-total) 
+                   # rename(Character = CharacterName) 
+
+
+sy_character_sentiment <- syuzhet_sentiments  %>% 
+                          filter(!is.na(sentiment)) %>% 
+                          group_by(Race) %>% 
+                          add_count(Race)  %>%
+                            mutate(sentiment = sum(sentiment)) %>% 
+                          summarize(sentiment = sentiment/n) %>% 
+                          distinct()
+
+sy_gender_sentiment <- syuzhet_sentiments  %>% 
+                          filter(!is.na(sentiment)) %>% 
+                          group_by(Gender) %>% 
+                          add_count(Gender)  %>%
+                            mutate(sentiment = sum(sentiment)) %>% 
+                          summarize(sentiment = sentiment/n) %>% 
+                          distinct()
+
+sy_location_sentiment <- syuzhet_sentiments  %>% 
+                          filter(!is.na(sentiment)) %>% 
+                          group_by(LocationTitle) %>% 
+                          add_count(LocationTitle)  %>%
+                            mutate(sentiment = sum(sentiment)) %>% 
+                          summarize(sentiment = sentiment/n) %>% 
+                          distinct()
+```
+
+
+
+### Dead code
+
+
+```{r}
+#Dead code that was used for optimizing the matching query
+
+
+# # summary(absalom_event_sentences)
+# # 
+#  test_sentence <- str_match(
+#      absalom_tidy_string$text,
+#      paste(
+#        "\\s*",
+#        absalom_events_tidy$begin_word[1],
+#        "(.*?)\\s*",
+#        absalom_events_tidy$end_word[1]
+#      ))
+#  test_sentence2 <- str_match(
+#      absalom_tidy_string$text,
+#      paste(
+#        "^?",
+#        absalom_events_tidy$begin_word[1],
+#        "(.*?)^?",
+#        absalom_events_tidy$end_word[1]
+#      ))
+#  
+#  
+# 
+# 
+#  absalom_event_sentences2 <- absalom_events_tidy %>%
+#    mutate(event_sentence = str_match(
+#      absalom_tidy_string$text,
+#      paste(
+#        "\\s*",
+#        word(absalom_events_tidy$begin_word,1,4," "),
+#        "(.*?)\\s*",
+#        word(absalom_events_tidy$end_word,1,4, " ")
+#      ))
+#    ) %>% 
+#    mutate(event_sentence = paste(absalom_events_tidy$begin_word,event_sentence[,2]))
+#  
+#  summary(absalom_event_sentences2)
+# 
+#  short_emotion <-  absalom_event_sentences %>% 
+#                       filter(event_sentence!=NA)
+# 
+# #string_test <- str_split_fixed(absalom_events_tidy$begin_word," "4)
+# # absalom_event_text <- absalom_events_shorter
+# #                       
+# # event_text <-  str_match(absalom_df$text, "little\\s*(.*?)\\s*unamaze")
+# # 
+# # test <- absalom_df$text
+# # string1 <- absalom_events_shorter$begin_words[2]
+# # string2 <- absalom_events_shorter$stop_words[2]
+# # sample1 <- "Then in the long"
+# # sample2 <- "Then hearing would"
+# # pattern <- paste("\\s*",sample1,"(.*?)\\s*",sample2)
+# # result <- regmatches(test, regexec(pattern, test))
+# # final_result <- paste(sample1,result[[1]][2])
+# # 
+# # event_text_2 <-  str_match(test, paste("\\s*",absalom_events_shorter$begin_words[2],"(.*?)\\s*",absalom_events_shorter$stop_words[2]))
+# # event_text_3 <- as.data.frame( paste(absalom_events_shorter$begin_words[2],event_text_2[1,2]))
+
+```
+
