@@ -43,8 +43,8 @@ The chart below shows the ten most frequent non-racial words and racial words in
 library(tidyverse)
 library(tidytext)
 library(syuzhet)
-
 library(stringi)
+library(scales)
 library(htmlTable)
 library(stringr)
 library(ggplot2)
@@ -71,7 +71,7 @@ faulkner_plotcolor = c("#ffffff")
 
 ```{r load_text}
 #Read in the text
-absalom_df <- as.data.frame(read_file("Faulkner_William_Absalom_Absalom.txt"))
+absalom_df <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
 colnames(absalom_df) <- "text" 
 ```
 
@@ -81,7 +81,7 @@ race_words <- read_csv("race_words.csv")
 ```
 
 ```{r}
-  absalom_events <- read.csv("absalom_sentences_export.csv")
+    absalom_events <- read.csv("absalom_sentences_export_4_30_v2.csv")
 ```
 
 
@@ -220,7 +220,6 @@ bigram_plot <- plot_ly(bigram_counts,
 
 div(bigram_plot,align='center')
 div("Figure 2: This plot shows the most common cooccurrence of racial language in Absalom, Absalom!")
-
 ```
 
 
@@ -409,67 +408,19 @@ div("Figure 5: The line chart shows the positive and negative of sentences. When
 
 One of the immediate things that stands out about this chart is just how negatively charged sentences in *Absalom, Absalom!* are. There are very few positive sentences in this text. The sentences that contain racial words are predominately negative. In fact, the sentence with the most negative emotions attached to it is also racially charged. This is sentence 1421 which, at 969 words, is also one of the longest sentences in the text. If you do not know *Absalom, Absalom!* by sentence, and I hope you don't, this is the passage that speaks of Sutpen's dissolution in the wake of the Civil War, and his drunken parleys with Wash Jones. The reason for the overabundance of negative emotions is both the sentence length and its grotesque content.
 
-### Sentiment by Word
 
-It is also possible to think through the sentiments attached to a particular word. This can be especially salient when considering the emotions around a character, a process that can be quite involved. One of the things we might want to know is that when Faulkner uses racial language what types of emotions do the surrounding words indicate. In a sense, we are creating an emotional context for each word. We can map all of these emotions through a radar plot. A radar plot uses multiple axes, and the extent to which the plots cover the axes demonstrate the multivariate differences. This is at best a conceptual depiction. Emotions do not work in opposites, and therefore a radar plot pointing strongly in one direction does not necessarily mean that it's opposite is absent, or even opposite. After all, what is the opposite of surprise? Trust? Joy? Indifference? These plots are best seen as showing "pulls" towards certain emotions, but they do not negate other emotions.
+## Part 3: Character Word Analysis
 
+Understanding when a certain word is used and in what emotional context does not necessarily indicate who is using it. There is currently no way to determine who is speaking in *Absalom, Absalom!* This is both a practical computational issue in terms of matching speaker with dialogue, but, more philosophically, we may also wonder if anyone's language is truly their own in the text. This is a community that has been shaped by the same story for generations. The cadence, register, and tone all inform particular leitmotifs that occur and reoccur throughout the narrative. 
 
-```{r race_sentiments}
-absalom_nrc_sent <- absalom_race_stats %>%
-    left_join(get_sentiments("nrc"))  %>% 
-  count(sentence_number, sentiment) %>%
-  spread(sentiment, n, fill = 0) %>%
-  select(1:11)
-  
-
-absalom_race_nrc <- absalom_race_stats %>% 
-                    inner_join(absalom_nrc_sent) %>% 
-                    filter(race_word==TRUE) %>% 
-                    group_by(word_lemma) %>%
-                    summarise(across(anger:trust, sum)) %>% 
-                    select(-positive,-negative) %>% 
-                    mutate(total = rowSums(across(where(is.numeric))))  %>% 
-                      arrange(desc(total)) %>%
-                    head(5)  %>% #Change number to include more or fewer entities
-                       mutate(across(anger:trust, .fns = ~ round((. / total) * 100))) %>% 
-                    select(-total) %>% 
-                    mutate(word_lemma= str_to_title(word_lemma)) %>% 
-                    rename(Word = word_lemma) 
-                    
-  colnames(absalom_race_nrc) <- stringr::str_to_title(colnames(absalom_race_nrc))
-
-```
+That being said, it is possible to investigate the proximity of racial words relative to characters. The *Digital Yoknapatawpha* database breaks down a text into events, which are, in turn, composed of locations and characters. By cross-referencing the words with the events, we can get some notion of what words are being used around what characters. This re-composition of the text drops out certain sentences because, on occassion, the event length is very short. In total, this was the case for 5 events, or .7% of the entire text. The difference is therefore negligible.
 
 
-
-```{r radar_plot}
-
-ggRadar(
-  data = absalom_race_nrc,
-  mapping = aes(color = Word, facet = Word),
-  rescale = FALSE,
-  colour = faulkner_colorway,
-  interactive = TRUE,
-  use.label = TRUE,
-  size = 2,
-  legend.position = "right"
-)
-
-div("Figure 6: Radar charts of the top five most used racial terms and their respective emotions.")
-```
-
-The radar charts are quite inscrutable, and it would be a mistake to attach too much value to them. For one, they all appear to exhibit a relatively similar pattern. This is perhaps owing to the fact that there is not a significant difference between the sentences in which these words are used, and the sentences where racial language is not being used. There are some slight differences between levels of particular emotions, but statistical analysis would likely reveal that these differences could be random.  
-The only real benefit of viewing the the words in their emotional context is that it appears that their context is similar to that of the whole book. Steeped in fear and sadness, this text is concerned with issues of trust, and leaves little room for joy or surprise. The emotional radar of this texts reads like a blurb for most any other Faulkner novel written during his canonical period! 
-
-Kidding aside, part of the reason why the results might not be all that revealing is because the sentiment library might not be equipped to deal with such a complex text. The other issue is that word-level analysis is still relatively superficial. For example, if we wanted to maker sure that every counted instance of "black" and "white" referred to race, we would have to do so manually. Second, we might know the emotional context of the word, but not the syntactical context. For instance, when Rosa tells of the time when Sutpen would fight his enslaved workers, she remarks her sister's emotion when Ellen, "seeing not the two black beasts she had expected to see, but instead a white one and a black one." Clearly, the negation of the earlier African Americans is then overturned by the appearance of Sutpen and one of the people he has enslaved. The emotions concern Sutpen and the enslaved person both, but not the earlier two African Americans who are also counted by dint of being in the same sentence. As mentioned previously, it is because of instances like this that sentiment analysis works better at scale because in the aggregate the emotional signal comes across as less distorted. In order to get a clearer reading of emotions in a particular context we need a more consistent unit of analysis. Fortunately, *DY* has created a database of each character in each event and we can establish the emotional context of specific characters and individuate them by race.
-
-## Part 3: Character Sentiment Analysis
+```{r match_begin_end}
+# the absalom_events data frame is read in from the CSV "absalom_sentences_export_4_30_v2.csv" This is a custom CSV created after the data extraction from the Drupal database. It is a shorter version of the fully joined data table, and substitutes the First word string for the columns begin_word and end_word. The end_word is merely the begin_word moved up by an index of one. Thus, a begin and end of a search string is created. This table had to be scrubbed manually for minor errors. 
 
 
-
-### scratch pad
-```{r}
-#Tidy the begin_word vector by unnesting, deleting any special curly quotes, collapse them back by eventID
+#Tidy the begin_word vector by unnesting it into individual words. In the tidytext package, unnesting removes white spaces, punctuation, and special characters. The only special character that might remain is the curly quote [‘’]. These have a tendency to mess up the matching. Once all the words are clean, they are collapsed back into sentences.
 
 
 absalom_events_tidy_begin <- absalom_events %>%
@@ -479,7 +430,7 @@ absalom_events_tidy_begin <- absalom_events %>%
   summarize(begin_word = str_c(begin_word, collapse = " ")) %>%
   ungroup()
 
-#Tidy the end_word vecotr
+#Tidy the end_word vector
 
 absalom_events_tidy_end <- absalom_events %>%
   unnest_tokens(end_word, end_word) %>%
@@ -488,13 +439,13 @@ absalom_events_tidy_end <- absalom_events %>%
   summarize(end_word = str_c(end_word, collapse = " ")) %>%
   ungroup()
 
-#Join the tidied begin and end words
+#Join the tidied begin and end words back to the data_frame
 absalom_events_tidy <- absalom_events %>% 
                         select(-begin_word, -end_word) %>% 
                         left_join(absalom_events_tidy_begin) %>% 
                         left_join(absalom_events_tidy_end) 
                         
-#Convert absalom to a tidy string. The curly quotes were messing up the matching.
+#Convert the Absalom text to a tidy string. Here too the curly quotes have been removed as it distorted the matching. 
 
 absalom_tidy_string <- absalom_df %>% 
                         mutate(text = gsub("[‘’]", "'", text)) %>% 
@@ -506,7 +457,11 @@ absalom_tidy_string <- absalom_df %>%
 
 absalom_event_sentences <- absalom_events_tidy %>%
   mutate(event_sentence = str_match(
+    #set the object for matching as the Absalom text
     absalom_tidy_string$text,
+    
+    #create a search string that reads "\\s*VAR1(.*?)\\s*VAR2". This essentially reads find the longest version of VAR1 and keep searching until you find the best possible match to VAR2. 
+    
     paste(
       "\\s*",
       absalom_events_tidy$begin_word,
@@ -514,157 +469,177 @@ absalom_event_sentences <- absalom_events_tidy %>%
       absalom_events_tidy$end_word
     ))
   ) %>% 
-mutate(event_sentence = paste(absalom_events_tidy$begin_word,event_sentence[,2]))
+  #Since there are some empty results these should be filtered out.
+    filter(!is.na(event_sentence[,2])) %>% 
+  #The str_match function returns a matrix of words. The full line has to be reconstituted by adding the search term to the retrieved term.
+  mutate(event_sentence = paste(begin_word,event_sentence[,2]))
 
-#TODO: There is an issue with the regular expression matching. It is still unclear why some results are not working. As this concerns a relatively small number it is not too much of a concern. At the moment, my suspicion is that the event string is too short and therefore cannot fetch any words after it. In some cases, it is because the types phrase in Drupal does not match the phrase in AA. 
 
+#FIXED: The regular expression matching is now much improved. In the csv files the order of events was not sorted by order in page. As a result, the string search could not search forward and find the end of the sentence. This needs to be fixed in the database itself. Second, some of the phrasing in the first 6-8 words were not verbatim from the text. These will eventually need to be fixed. Finally, one minor error is that some events are the actual length of the sentences they are looking for. This can't be fixed. In total, 5 events out of 644 do not properly match because of this issue. It is negligible. 
 
+```
+
+```{r tidy_event_sentences}
 #Tidy the DF by unnesting all the words, and removing stop words
 absalom_event_sentences_tidy <- absalom_event_sentences %>% 
                                 unnest_tokens(word, event_sentence)  %>% 
                                 anti_join(stop_words)
 
-#Get sentiments and pivot wide
-event_sentiments <- absalom_event_sentences_tidy %>% 
-left_join(get_sentiments("nrc")) %>%  
-  group_by(EventID) %>% 
-  count(EventID, sentiment) %>% 
-  pivot_wider(names_from = sentiment, values_from = n, values_fill=0) %>% 
-          mutate(sentiment = positive - negative) %>% 
-          select(-12)
+#Lemmatize the words and then inner_join the racial words, thereby dropping any Events that do not contain racial words. Calculate the count of racial words by EventID and pivot the table wider for each word.
 
-sy_event_sentiments <- absalom_event_sentences_tidy$word
-sy_sents <- get_sentiment(sy_event_sentiments) 
-absalom_event_sentences_tidy$sentiment <- sy_sents
-
-absalom_sentiments <- absalom_event_sentences_tidy %>% 
- 
-  group_by(EventID) %>% 
-  summarise(sentiment = sum(sentiment)) 
-   
-          
-
+absalom_race_words <- absalom_event_sentences_tidy %>% 
+                      mutate(word_lemma = textstem::lemmatize_words(word)) %>% 
+                      mutate(word_lemma = str_remove_all(word_lemma, "'s")) %>%
+                      inner_join(race_words) %>% 
+                      group_by(EventID, word_lemma)  %>% 
+                      count(word_lemma) %>% 
+                      pivot_wider(names_from = word_lemma, values_from = n, values_fill=0)
 ```
 
 
 ```{r read_all_absalom_events}
+
+
 absalom_all_events <- read_csv("absalom_all_events_2021_4_30.csv")
 ```
 
-```{r}
-absalom_all_sentiments <-  absalom_all_events %>% 
-                            left_join(event_sentiments)
+```{r clean_up_absalom_events}
+#The full table is long and hard to work with. 
+absalom_events_short <- absalom_all_events %>% 
+                        select(3,21:27,50,52:54)
 
-syuzhet_sentiments <- absalom_all_events %>% 
-                        left_join(absalom_sentiments)
+```
 
+```{r add_racial_events}
+#Join the race events to all of the events and drop events that don't include racial events. 
+absalom_race_events <- absalom_events_short %>% 
+                        inner_join(absalom_race_words)
+```
+
+
+```{r get_race_character}
+#Create count of character occurrence, useful for sorting and proportionality
+character_occurrence <-  absalom_events_short %>% 
+                          count(CharacterName, name="char_count")
+
+
+absalom_race_character <- absalom_race_events %>% 
+                          group_by(CharacterName) %>% 
+                           summarise(across(black:miscegenation, ~sum(.))) %>% 
+                            left_join(character_occurrence) %>% 
+                            arrange(desc(char_count)) 
+                          
+#Preliminary tests show no real difference between Present and mentioned other than an ovious occurrence difference. 
+absalom_race_present <- absalom_race_events %>% 
+                          filter(PresentMentioned=="Present") %>% 
+                          group_by(CharacterName) %>% 
+                           summarise(across(black:miscegenation, ~sum(.)))
+
+absalom_race_mentioned <- absalom_race_events %>% 
+                          filter(PresentMentioned=="Mentioned") %>% 
+                          group_by(CharacterName) %>% 
+                           summarise(across(black:miscegenation, ~sum(.)))
+
+
+
+
+```
+
+
+
+```{r race_char_chart}
+
+
+absalom_race_n <- absalom_race_character %>%
+  top_n(5) %>%
+  select(1:3, 5:6, 10)
+
+fig_race_bar <-
+  plot_ly(
+    absalom_race_n,
+    x = ~ CharacterName,
+    y = ~ black,
+    type = 'bar',
+    name = 'Black'
+  )
+fig_race_bar <-
+  fig_race_bar %>% add_trace(y = ~ blood, name = 'Blood')
+fig_race_bar <-
+  fig_race_bar %>% add_trace(y = ~ negro, name = 'Negro')
+fig_race_bar <-
+  fig_race_bar %>% add_trace(y = ~ nigger, name = 'Nigger')
+fig_race_bar <-
+  fig_race_bar %>% add_trace(y = ~ white, name = 'White')
+
+fig_race_bar <- fig_race_bar %>%
+  layout(
+    title = "Frequency of Racial Words in Events with Specific Characters",
+    yaxis = list(title = 'Count'),
+    xaxis = list(title = 'Character'),
+    barmode = 'group',
+    colorway = faulkner_colorway
+  )
+
+
+div(fig_race_bar, align='center')
+div("Figure 4: The above bubble chart shows the frequency of racial word use by chapter. Immediately noticeable is that the overwhelming majority of the use of hte word 'nigger' appear in chapter 7")
+
+
+
+```
+
+
+
+
+```{r race_character_prop}
+character_occurrence <-  absalom_events_short %>% 
+                          count(CharacterName, name="char_count")
+
+absalom_race_char_prop <- absalom_race_character %>% 
+                          #left_join(character_occurrence,by="CharacterName") %>% 
+                          # arrange(desc(char_count)) %>% 
+                            top_n(5) %>% 
+                          mutate(across(black:miscegenation, .fns = ~(. / char_count)))
 ```
 
 
 ```{r}
 
-character_sentiment <- absalom_all_sentiments %>% 
-                      group_by(LocationTitle) %>%
-                      summarise(across(anger:trust, sum)) %>% 
-                     #select(-positive,-negative) %>% 
-                      mutate(sentiment = positive-negative) %>% 
-                      mutate(total = rowSums(across(where(is.numeric))))   %>% 
-                      arrange(desc(total)) %>%
-                      head(50)  %>% #Change number to include more or fewer entities
-                       mutate(across(anger:sentiment, .fns = ~ round((. / total) * 100))) %>% 
-                    select(-total) 
-                   # rename(Character = CharacterName) 
 
+absalom_race_n_prop <- absalom_race_char_prop %>%
+  top_n(5) %>%
+  select(1:3, 5:6, 10)
 
-sy_character_sentiment <- syuzhet_sentiments  %>% 
-                          filter(!is.na(sentiment)) %>% 
-                          group_by(Race) %>% 
-                          add_count(Race)  %>%
-                            mutate(sentiment = sum(sentiment)) %>% 
-                          summarize(sentiment = sentiment/n) %>% 
-                          distinct()
+fig_race_bar_prop <-
+  plot_ly(
+    absalom_race_n_prop,
+    x = ~ CharacterName,
+    y = ~ black,
+    type = 'bar',
+    name = 'Black',
+    opacity = .9
+    
+  )
+fig_race_bar_prop <-
+  fig_race_bar_prop %>% add_trace(y = ~ blood, name = 'Blood')
+fig_race_bar_prop <-
+  fig_race_bar_prop %>% add_trace(y = ~ negro, name = 'Negro')
+fig_race_bar_prop <-
+  fig_race_bar_prop %>% add_trace(y = ~ nigger, name = 'Nigger')
+fig_race_bar_prop <-
+  fig_race_bar_prop %>% add_trace(y = ~ white, name = 'White')
 
-sy_gender_sentiment <- syuzhet_sentiments  %>% 
-                          filter(!is.na(sentiment)) %>% 
-                          group_by(Gender) %>% 
-                          add_count(Gender)  %>%
-                            mutate(sentiment = sum(sentiment)) %>% 
-                          summarize(sentiment = sentiment/n) %>% 
-                          distinct()
-
-sy_location_sentiment <- syuzhet_sentiments  %>% 
-                          filter(!is.na(sentiment)) %>% 
-                          group_by(LocationTitle) %>% 
-                          add_count(LocationTitle)  %>%
-                            mutate(sentiment = sum(sentiment)) %>% 
-                          summarize(sentiment = sentiment/n) %>% 
-                          distinct()
-```
-
-
-
-### Dead code
-
-
-```{r}
-#Dead code that was used for optimizing the matching query
-
-
-# # summary(absalom_event_sentences)
-# # 
-#  test_sentence <- str_match(
-#      absalom_tidy_string$text,
-#      paste(
-#        "\\s*",
-#        absalom_events_tidy$begin_word[1],
-#        "(.*?)\\s*",
-#        absalom_events_tidy$end_word[1]
-#      ))
-#  test_sentence2 <- str_match(
-#      absalom_tidy_string$text,
-#      paste(
-#        "^?",
-#        absalom_events_tidy$begin_word[1],
-#        "(.*?)^?",
-#        absalom_events_tidy$end_word[1]
-#      ))
-#  
-#  
-# 
-# 
-#  absalom_event_sentences2 <- absalom_events_tidy %>%
-#    mutate(event_sentence = str_match(
-#      absalom_tidy_string$text,
-#      paste(
-#        "\\s*",
-#        word(absalom_events_tidy$begin_word,1,4," "),
-#        "(.*?)\\s*",
-#        word(absalom_events_tidy$end_word,1,4, " ")
-#      ))
-#    ) %>% 
-#    mutate(event_sentence = paste(absalom_events_tidy$begin_word,event_sentence[,2]))
-#  
-#  summary(absalom_event_sentences2)
-# 
-#  short_emotion <-  absalom_event_sentences %>% 
-#                       filter(event_sentence!=NA)
-# 
-# #string_test <- str_split_fixed(absalom_events_tidy$begin_word," "4)
-# # absalom_event_text <- absalom_events_shorter
-# #                       
-# # event_text <-  str_match(absalom_df$text, "little\\s*(.*?)\\s*unamaze")
-# # 
-# # test <- absalom_df$text
-# # string1 <- absalom_events_shorter$begin_words[2]
-# # string2 <- absalom_events_shorter$stop_words[2]
-# # sample1 <- "Then in the long"
-# # sample2 <- "Then hearing would"
-# # pattern <- paste("\\s*",sample1,"(.*?)\\s*",sample2)
-# # result <- regmatches(test, regexec(pattern, test))
-# # final_result <- paste(sample1,result[[1]][2])
-# # 
-# # event_text_2 <-  str_match(test, paste("\\s*",absalom_events_shorter$begin_words[2],"(.*?)\\s*",absalom_events_shorter$stop_words[2]))
-# # event_text_3 <- as.data.frame( paste(absalom_events_shorter$begin_words[2],event_text_2[1,2]))
+fig_race_bar_prop <- fig_race_bar_prop %>%
+  layout(
+    title = "Frequency of Racial Words in Events with Specific Characters",
+    yaxis = list(title = 'Percentage of Events',
+                 tickformat= ',.0%'),
+    xaxis = list(title = 'Character'),
+    barmode = 'group',
+    colorway = faulkner_colorway
+  )
+fig_race_bar_prop
 
 ```
+
 
