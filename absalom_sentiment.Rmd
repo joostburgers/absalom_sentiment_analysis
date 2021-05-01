@@ -52,6 +52,7 @@ library(plotly)
 library(ggthemes)
 library(textstem)
 library(shiny)
+library(lubridate)
 library(ggiraphExtra)
 ```
 
@@ -73,6 +74,9 @@ faulkner_plotcolor = c("#ffffff")
 #Read in the text
 absalom_df <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
 colnames(absalom_df) <- "text" 
+
+absalom_df <- absalom_df %>% 
+mutate(text = gsub("[‘’]", "'", text))
 ```
 
 ```{r load_race_words}
@@ -88,11 +92,12 @@ race_words <- read_csv("race_words.csv")
 ```{r unnest_text}
 #unnest the text by sentence and then label each chapter number and sentence number.
 absalom_tidy <- absalom_df %>%
-  unnest_regex(text, text, pattern = "Chapter [:digit:]") %>%
+  unnest_regex(text, text, pattern = "Chapter [:digit:]") %>% 
   mutate(chapter = row_number()) %>%
   unnest_regex(sentences, text, pattern = "[.?!]") %>% 
   mutate(sentence_number = row_number()) %>%  
-  unnest_tokens(word, sentences)
+  unnest_tokens(word, sentences) 
+  
 ```
 
 ```{r word_frequency}
@@ -135,6 +140,7 @@ absalom_word_frequency_plot <- plot_ly(
   y = ~ n,
   type = "bar",
   color = ~ race_word,
+  opacity=.9,
   colors= faulkner_colorway,
    hovertemplate=paste('Count: %{y}<extra></extra>')
   )
@@ -146,7 +152,8 @@ absalom_word_frequency_plot <- absalom_word_frequency_plot %>%
     yaxis = list(title = "Number of Words"),
     legend = list(title = list(text = '<b>Race Word</b>')),
     paper_bgcolor = faulkner_paperbackground,
-    plot_bgcolor = faulkner_plotcolor
+    plot_bgcolor = faulkner_plotcolor,
+     margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4)
     
   )
 
@@ -155,11 +162,11 @@ div("Figure 1: The chart displays the most frequent words based on word stem. Th
 
 ```
 
-What is immediately noticeable is that the word "nigger" is the most frequent racial term. It exceeds the word "negro" by 50 counts. It occurs about a third as infrequently as the word Henry (the main character) and twice as infrequently as the racially ambigious Charles Bon. Importantly, the occurrences of the individual names of characters is not the same as the number of times they actually occur in the text. After all, the pronouns "he" or "she" could equally well denote a character, but that is not shown here.
+What is immediately noticeable is that the word "nigger" is the most frequent racial term. It exceeds the word "negro" by 50 counts. It occurs about a third as infrequently as the word Henry (the main character) and twice as infrequently as the racially ambiguous Charles Bon. Importantly, the occurrences of the individual names of characters is not the same as the number of times they actually occur in the text. After all, the pronouns "he" or "she" could equally well denote a character, but that is not shown here.
 
 ### Collocations
 
-Collocation is a process of determining what words appear together. This is done by creating n-grams, where n is the number of words that might match in a sequence. By determining the n-gram around particular words, we can get a better sense of the context. For example, in her research of British Newspapers, Dawn Archer has shown that the most common bigram (n-gram of two) for Muslim is "Muslim terrorist."(CITE) Certainly this strong association between these two words indicates how Muslim's are represented in the British media. In similar fashion, we get a better sense of how Faulkner is using racial langauge by looking at the words immediately before and after them.
+Collocation is a process of determining what words appear together. This is done by creating n-grams, where n is the number of words that might match in a sequence. By determining the n-gram around particular words, we can get a better sense of the context. For example, in her research of British Newspapers, Dawn Archer has shown that the most common bigram (n-gram of two) for Muslim is "Muslim terrorist."(CITE) Certainly this strong association between these two words indicates how Muslim's are represented in the British media. In similar fashion, we get a better sense of how Faulkner is using racial language by looking at the words immediately before and after them.
 
 ```{r}
 
@@ -194,8 +201,6 @@ bigram_counts <- bigrams_filtered %>%
   count(bigram, sort = TRUE) %>% 
   mutate(bigram = reorder(bigram, n)) %>% 
   top_n(15)
-
-
 ```
 
 
@@ -206,6 +211,7 @@ bigram_plot <- plot_ly(bigram_counts,
   y = ~bigram,
   type = "bar",
   orientation = 'h',
+  opacity =.9,
     hovertemplate=paste('Count: %{x}<extra></extra>')
   )
       
@@ -215,7 +221,8 @@ bigram_plot <- plot_ly(bigram_counts,
          yaxis = list(title = "Bigrams"),
          colorway=faulkner_colorway,
          paper_bgcolor = faulkner_paperbackground,
-    plot_bgcolor = faulkner_plotcolor
+    plot_bgcolor = faulkner_plotcolor,
+     margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4)
      )
 
 div(bigram_plot,align='center')
@@ -240,6 +247,7 @@ wild_plot <- plot_ly(
   y = ~ Wild_Nigger,
   name = 'Wild Nigger',
   type = "bar",
+  opacity = .9,
   hovertemplate = paste('Count: %{y}<extra></extra>')
 )
 wild_plot <- wild_plot %>%
@@ -388,7 +396,9 @@ text_sentiment_plot <- plot_ly(absalom_sentiment_race,
   x = ~sentence_number,
   y = ~Regular,
   name='Regular',
-    type = "bar"
+    type = "bar",
+  opacity = .9,
+     hovertemplate=paste('Sentiment: %{y}<extra></extra>')
     )
 text_sentiment_plot <- text_sentiment_plot %>% 
                       add_trace(y = ~Race, name = 'Race')
@@ -398,7 +408,8 @@ text_sentiment_plot <- text_sentiment_plot %>% layout(title = "Sentiment surroun
          yaxis = list(title = "<b>Sentiment Count</b>"),
          colorway=faulkner_colorway,
          paper_bgcolor = faulkner_paperbackground,
-    plot_bgcolor = faulkner_plotcolor
+    plot_bgcolor = faulkner_plotcolor,
+      margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4)
          )
 
 div(text_sentiment_plot, align='center')
@@ -411,21 +422,20 @@ One of the immediate things that stands out about this chart is just how negativ
 
 ## Part 3: Character Word Analysis
 
-Understanding when a certain word is used and in what emotional context does not necessarily indicate who is using it. There is currently no way to determine who is speaking in *Absalom, Absalom!* This is both a practical computational issue in terms of matching speaker with dialogue, but, more philosophically, we may also wonder if anyone's language is truly their own in the text. This is a community that has been shaped by the same story for generations. The cadence, register, and tone all inform particular leitmotifs that occur and reoccur throughout the narrative. 
+Understanding when a certain word is used and in what emotional context does not necessarily indicate who is using it. There is currently no way to determine who is speaking in *Absalom, Absalom!* This is both a practical computational issue in terms of matching speaker with dialogue, but, more philosophically, we may also wonder if anyone's language is truly their own in the text. This is a community that has been shaped by the same story for generations. The cadence, register, and tone all inform particular leitmotifs that occur and reoccur throughout the narrative. Indeed, one of the interesting phenomena that CL reveals is just how often certain turns of phrase are repeated, re-worked, and re-contextualized. The singularity of the speaker is unsettled by the multiplicity of the spoken.
 
-That being said, it is possible to investigate the proximity of racial words relative to characters. The *Digital Yoknapatawpha* database breaks down a text into events, which are, in turn, composed of locations and characters. By cross-referencing the words with the events, we can get some notion of what words are being used around what characters. This re-composition of the text drops out certain sentences because, on occassion, the event length is very short. In total, this was the case for 5 events, or .7% of the entire text. The difference is therefore negligible.
-
+That being said, it is possible to investigate the proximity of racial words relative to characters. The *Digital Yoknapatawpha* database breaks down a text into events, which are, in turn, composed of locations and characters. By cross-referencing the words with the events, we can get some notion of what words are being used around what characters. This re-composition of the text drops out certain sentences because, on occasion, the event length is very short. In total, this was the case for 5 events, or .7% of the entire text. The difference is therefore negligible.
 
 ```{r match_begin_end}
-# the absalom_events data frame is read in from the CSV "absalom_sentences_export_4_30_v2.csv" This is a custom CSV created after the data extraction from the Drupal database. It is a shorter version of the fully joined data table, and substitutes the First word string for the columns begin_word and end_word. The end_word is merely the begin_word moved up by an index of one. Thus, a begin and end of a search string is created. This table had to be scrubbed manually for minor errors. 
+# the absalom_events data frame is read in from the CSV "absalom_sentences_export_4_30_v2.csv" This is a custom CSV created after the data extraction from the Drupal database. It is a shorter version of the fully joined data table, and substitutes the 'First word' string for the columns begin_word and end_word. The end_word is merely the begin_word moved up by an index of one. Thus, a begin and end of a search string is created. This table had to be scrubbed manually for minor errors.
 
+# The process for recomposing the text is involved. The procedure here works because both the data table and the original text had to manually cleaned. As this cleaning and aligning is part and parcel to CL more broadly the specific steps have been left out.
 
-#Tidy the begin_word vector by unnesting it into individual words. In the tidytext package, unnesting removes white spaces, punctuation, and special characters. The only special character that might remain is the curly quote [‘’]. These have a tendency to mess up the matching. Once all the words are clean, they are collapsed back into sentences.
-
+#Tidy the begin_word vector by unnesting it into individual words. In the tidytext package, unnesting removes white spaces, punctuation, and special characters. The only special character that might remain is the curly quote [‘’]. These have a tendency to mess up the matching and have been replaced with straight quotes [']. Once all the words are clean, they are collapsed back into sentences.
 
 absalom_events_tidy_begin <- absalom_events %>%
-  unnest_tokens(begin_word, begin_word) %>% 
-  mutate(begin_word = gsub("[‘’]", "'", begin_word)) %>% 
+  unnest_tokens(begin_word, begin_word) %>%
+  mutate(begin_word = gsub("[‘’]", "'", begin_word)) %>%
   group_by(EventID) %>%
   summarize(begin_word = str_c(begin_word, collapse = " ")) %>%
   ungroup()
@@ -434,80 +444,71 @@ absalom_events_tidy_begin <- absalom_events %>%
 
 absalom_events_tidy_end <- absalom_events %>%
   unnest_tokens(end_word, end_word) %>%
-  mutate(end_word = gsub("[‘’]", "'", end_word)) %>% 
+  mutate(end_word = gsub("[‘’]", "'", end_word)) %>%
   group_by(EventID) %>%
   summarize(end_word = str_c(end_word, collapse = " ")) %>%
   ungroup()
 
 #Join the tidied begin and end words back to the data_frame
-absalom_events_tidy <- absalom_events %>% 
-                        select(-begin_word, -end_word) %>% 
-                        left_join(absalom_events_tidy_begin) %>% 
-                        left_join(absalom_events_tidy_end) 
-                        
-#Convert the Absalom text to a tidy string. Here too the curly quotes have been removed as it distorted the matching. 
 
-absalom_tidy_string <- absalom_df %>% 
-                        mutate(text = gsub("[‘’]", "'", text)) %>% 
-                        unnest_tokens(text, text) %>% 
-                        summarize(text = str_c(text, collapse = " ")) 
+absalom_events_tidy <- absalom_events %>%
+  select(-begin_word,-end_word) %>%
+  left_join(absalom_events_tidy_begin) %>%
+  left_join(absalom_events_tidy_end)
 
+#Convert the Absalom text to a tidy string. Here too the curly quotes have been removed as it distorted the matching.
+
+absalom_tidy_string <- absalom_df %>%
+  mutate(text = gsub("[‘’]", "'", text)) %>%
+  unnest_tokens(text, text) %>%
+  summarize(text = str_c(text, collapse = " "))
 
 #Match string in text based on regex between between begin_word and end_word
+#  -set the object for matching as the Absalom text
+#  -create a search string that reads "\\s*VAR1(.*?)\\s*VAR2". This essentially finds the longest version of VAR1 and keep searching until you find the best possible match to VAR2.
+#  -Since there are some empty results these should be filtered out.
+# -The str_match function returns a matrix of words. The full line has to be reconstituted by adding the search term to the retrieved term.
 
 absalom_event_sentences <- absalom_events_tidy %>%
   mutate(event_sentence = str_match(
-    #set the object for matching as the Absalom text
     absalom_tidy_string$text,
-    
-    #create a search string that reads "\\s*VAR1(.*?)\\s*VAR2". This essentially reads find the longest version of VAR1 and keep searching until you find the best possible match to VAR2. 
-    
     paste(
       "\\s*",
       absalom_events_tidy$begin_word,
       "(.*?)\\s*",
       absalom_events_tidy$end_word
-    ))
-  ) %>% 
-  #Since there are some empty results these should be filtered out.
-    filter(!is.na(event_sentence[,2])) %>% 
-  #The str_match function returns a matrix of words. The full line has to be reconstituted by adding the search term to the retrieved term.
-  mutate(event_sentence = paste(begin_word,event_sentence[,2]))
-
+    )
+  )) %>%
+  filter(!is.na(event_sentence[, 2])) %>%
+  mutate(event_sentence = paste(begin_word, event_sentence[, 2]))
 
 #FIXED: The regular expression matching is now much improved. In the csv files the order of events was not sorted by order in page. As a result, the string search could not search forward and find the end of the sentence. This needs to be fixed in the database itself. Second, some of the phrasing in the first 6-8 words were not verbatim from the text. These will eventually need to be fixed. Finally, one minor error is that some events are the actual length of the sentences they are looking for. This can't be fixed. In total, 5 events out of 644 do not properly match because of this issue. It is negligible. 
-
 ```
 
-```{r tidy_event_sentences}
-#Tidy the DF by unnesting all the words, and removing stop words
-absalom_event_sentences_tidy <- absalom_event_sentences %>% 
-                                unnest_tokens(word, event_sentence)  %>% 
-                                anti_join(stop_words)
+```{r count_race_words}
+#Once the sentences have been matched, the full sentences is unnested, the words lemmatized, and inner_joined with the race words. These are then grouped by EventID and counted and pivot wider on each race word.
 
-#Lemmatize the words and then inner_join the racial words, thereby dropping any Events that do not contain racial words. Calculate the count of racial words by EventID and pivot the table wider for each word.
-
-absalom_race_words <- absalom_event_sentences_tidy %>% 
-                      mutate(word_lemma = textstem::lemmatize_words(word)) %>% 
-                      mutate(word_lemma = str_remove_all(word_lemma, "'s")) %>%
-                      inner_join(race_words) %>% 
-                      group_by(EventID, word_lemma)  %>% 
-                      count(word_lemma) %>% 
-                      pivot_wider(names_from = word_lemma, values_from = n, values_fill=0)
+absalom_race_words <- absalom_event_sentences %>%
+  unnest_tokens(word, event_sentence)  %>%
+  mutate(word_lemma = textstem::lemmatize_words(word)) %>%
+  mutate(word_lemma = str_remove_all(word_lemma, "'s")) %>%
+  inner_join(race_words) %>%
+  group_by(EventID, word_lemma)  %>%
+  count(word_lemma) %>%
+  pivot_wider(names_from = word_lemma,
+              values_from = n,
+              values_fill = 0)
 ```
-
 
 ```{r read_all_absalom_events}
-
-
 absalom_all_events <- read_csv("absalom_all_events_2021_4_30.csv")
 ```
 
 ```{r clean_up_absalom_events}
 #The full table is long and hard to work with. 
-absalom_events_short <- absalom_all_events %>% 
-                        select(3,21:27,50,52:54)
 
+absalom_events_short <- absalom_all_events %>%
+  select(3, 9, 21:27, 50, 52:54)
 ```
 
 ```{r add_racial_events}
@@ -529,27 +530,15 @@ absalom_race_character <- absalom_race_events %>%
                             left_join(character_occurrence) %>% 
                             arrange(desc(char_count)) 
                           
-#Preliminary tests show no real difference between Present and mentioned other than an ovious occurrence difference. 
-absalom_race_present <- absalom_race_events %>% 
-                          filter(PresentMentioned=="Present") %>% 
-                          group_by(CharacterName) %>% 
-                           summarise(across(black:miscegenation, ~sum(.)))
-
-absalom_race_mentioned <- absalom_race_events %>% 
-                          filter(PresentMentioned=="Mentioned") %>% 
-                          group_by(CharacterName) %>% 
-                           summarise(across(black:miscegenation, ~sum(.)))
-
-
-
-
+#Note: In a previous iteration of the code, I tested whether there was a difference between character present and character mentioned. Other than the usual proportion of present and mentioned differences this did not lead ot an interesting result. 
 ```
 
 
+### Top Race Words and Characters
+
+While every character can be matched with the number of each word that occurs with them, this is not a relevant statistic. The words that make the most sense are the five most frequent race words discussed in figure BLANK. These are "blood," "black," "negro," "nigger," and "white." As each character necessarily occurs with each word at a different frequency, the top five characters were selected by the number of appearances in the total number of the events.  
 
 ```{r race_char_chart}
-
-
 absalom_race_n <- absalom_race_character %>%
   top_n(5) %>%
   select(1:3, 5:6, 10)
@@ -560,16 +549,68 @@ fig_race_bar <-
     x = ~ CharacterName,
     y = ~ black,
     type = 'bar',
-    name = 'Black'
+    name = 'Black',
+    hovertemplate = paste(
+      'Character: %{x}',
+      '<br>',
+      'Word: Black',
+      '<extra></extra>',
+      '<br>',
+      'Count: %{y}'
+    )
   )
 fig_race_bar <-
-  fig_race_bar %>% add_trace(y = ~ blood, name = 'Blood')
+  fig_race_bar %>% add_trace(
+    y = ~ blood,
+    name = 'Blood',
+    hovertemplate = paste(
+      'Character: %{x}',
+      '<br>',
+      'Word: Blood',
+      '<extra></extra>',
+      '<br>',
+      'Count: %{y}'
+    )
+  )
 fig_race_bar <-
-  fig_race_bar %>% add_trace(y = ~ negro, name = 'Negro')
+  fig_race_bar %>% add_trace(
+    y = ~ negro,
+    name = 'Negro',
+    hovertemplate = paste(
+      'Character: %{x}',
+      '<br>',
+      'Word: Negro',
+      '<extra></extra>',
+      '<br>',
+      'Count: %{y}'
+    )
+  )
 fig_race_bar <-
-  fig_race_bar %>% add_trace(y = ~ nigger, name = 'Nigger')
+  fig_race_bar %>% add_trace(
+    y = ~ nigger,
+    name = 'Nigger',
+    hovertemplate = paste(
+      'Character: %{x}',
+      '<br>',
+      'Word: Nigger',
+      '<extra></extra>',
+      '<br>',
+      'Count: %{y}'
+    )
+  )
 fig_race_bar <-
-  fig_race_bar %>% add_trace(y = ~ white, name = 'White')
+  fig_race_bar %>% add_trace(
+    y = ~ white,
+    name = 'White',
+    hovertemplate = paste(
+      'Character: %{x}',
+      '<br>',
+      'Word: White',
+      '<extra></extra>',
+      '<br>',
+      'Count: %{y}'
+    )
+  )
 
 fig_race_bar <- fig_race_bar %>%
   layout(
@@ -577,69 +618,173 @@ fig_race_bar <- fig_race_bar %>%
     yaxis = list(title = 'Count'),
     xaxis = list(title = 'Character'),
     barmode = 'group',
-    colorway = faulkner_colorway
+    colorway = faulkner_colorway,
+    margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4)
   )
 
 
 div(fig_race_bar, align='center')
-div("Figure 4: The above bubble chart shows the frequency of racial word use by chapter. Immediately noticeable is that the overwhelming majority of the use of hte word 'nigger' appear in chapter 7")
-
-
-
+div("Figure 6: Frequency of character appearance in events with race words.")
 ```
 
 
-
-
-```{r race_character_prop}
-character_occurrence <-  absalom_events_short %>% 
-                          count(CharacterName, name="char_count")
-
-absalom_race_char_prop <- absalom_race_character %>% 
-                          #left_join(character_occurrence,by="CharacterName") %>% 
-                          # arrange(desc(char_count)) %>% 
-                            top_n(5) %>% 
-                          mutate(across(black:miscegenation, .fns = ~(. / char_count)))
+```{r char_count_sutpen}
+Sutpen_occurrence <- character_occurrence %>% filter(CharacterName=="Thomas Sutpen") %>% select(2)
 ```
 
+
+The resulting chart is quite revealing. Among most of the characters, the ratio of the word Negro vs. the N-word is relatively even. The most obvious difference is Thomas Sutpen. In events where is he present or mentioned the n-word occurs `r absalom_race_n$nigger[1]` times. Part of the reason for this is that Thomas Sutpen occurs in the most events throughout the text, `r Sutpen_occurrence$char_count[1]` to be exact. Consequently, it makes sense that he has a higher chance of occurring in those events in which there is a particular racial word. 
+
+```{r}
+n_word_frequency <-  absalom_word_frequency %>% 
+                      filter(word_lemma=="nigger")
+```
+
+In order to get a better view into how often a racial word is used in the same event as a character, we need to normalize the data by the number of times the word occurs. This way we can understand proportionally, how often a character is in an event where a particular word occurs. We know from the previous chart that the n-word occurs `r n_word_frequency$n[1]` times. Dividing the number of occurrences for each character by this number produces the percentage chart below. 
+
+#### Race chart data
 
 ```{r}
 
+n_word_character <- absalom_race_events %>% 
+                          group_by(CharacterName) %>% 
+                           summarise(across(nigger, ~sum(.)/n_word_frequency$n)) %>% 
+                          top_n(10) %>% 
+                           mutate(CharacterName = reorder(CharacterName, desc(nigger))) 
+Sutpen_n_word_percent <- n_word_character %>% filter(CharacterName=="Thomas Sutpen") 
+```
 
-absalom_race_n_prop <- absalom_race_char_prop %>%
-  top_n(5) %>%
-  select(1:3, 5:6, 10)
 
-fig_race_bar_prop <-
-  plot_ly(
-    absalom_race_n_prop,
-    x = ~ CharacterName,
-    y = ~ black,
-    type = 'bar',
-    name = 'Black',
-    opacity = .9
+#### Nword Frequency chart
+
+```{r}
+n_word_character_plot <- plot_ly(
+  n_word_character,
+  x = ~ nigger,
+  y = ~ CharacterName,
+  type = "bar",
+  orientation = 'h',
+  opacity=.9,
+  
+   hovertemplate=paste('Percentage: %{x}<extra></extra>')
+  )
+
+n_word_character_plot <- n_word_character_plot %>%
+  layout(
+    title = "Ten Most Frequent Word by Non-Race and Race Words",
+    xaxis = list(title = "Percentage of N-word Usage", tickformat= ',.0%'),
+    yaxis = list(title = "Character"),
+    paper_bgcolor = faulkner_paperbackground,
+    plot_bgcolor = faulkner_plotcolor,
+    colorway= faulkner_colorway,
+    margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4)
     
   )
-fig_race_bar_prop <-
-  fig_race_bar_prop %>% add_trace(y = ~ blood, name = 'Blood')
-fig_race_bar_prop <-
-  fig_race_bar_prop %>% add_trace(y = ~ negro, name = 'Negro')
-fig_race_bar_prop <-
-  fig_race_bar_prop %>% add_trace(y = ~ nigger, name = 'Nigger')
-fig_race_bar_prop <-
-  fig_race_bar_prop %>% add_trace(y = ~ white, name = 'White')
 
-fig_race_bar_prop <- fig_race_bar_prop %>%
-  layout(
-    title = "Frequency of Racial Words in Events with Specific Characters",
-    yaxis = list(title = 'Percentage of Events',
-                 tickformat= ',.0%'),
-    xaxis = list(title = 'Character'),
-    barmode = 'group',
-    colorway = faulkner_colorway
-  )
-fig_race_bar_prop
+div(n_word_character_plot, align = "center")
+div("Figure 7: The chart displays the character occurrence relative to the number of times the word 'nigger' appears")
+
 
 ```
+
+The chart reveals, quite dramatically, that Thomas Sutpen is in some way part of the event `r (Sutpen_n_word_percent$nigger[1])*100`% of the times that the n-word occurs. While it is not clear that he is using the word, it is clear that he is the character with whom the racial epithet is most associated. Indeed, in one event it occurs 16 times. This is when Sutpen is barred from entering the front door of the plantation by the enslaved butler (187). It is this primal incident that shapes so much of Sutpen's consciousness going forward, and it becomes the gravitational center that pulls in the worst racial language American literature has to offer at the moment that he becomes aware of his class difference it redounds to racial antagonism.
+
+### Time and Racial Language
+
+The use of racial language is also time bound. Certain words are more prominent during certain periods than others. The *DY* data also includes speculative dates for each event. These  dates consist of both an earliest possible start date and latest possible end date. Needless to say, establishing Faulkner's chronology is not an exact science and the dates are best seen as an approximate measure. Nevertheless, they do give a general indication around what time the events take place.
+
+```{r race_by_date}
+absalom_race_date <- absalom_race_events %>%
+                          distinct(EventID,.keep_all=TRUE) %>%
+                          mutate(StartDate = as.numeric(paste(str_sub(StartDate, 1,3),0,sep = ""))) %>% 
+                          group_by(StartDate) %>% 
+                           summarise(across(black:white, ~sum(.))) %>% 
+                            select(StartDate, black, blood, negro, nigger, white)
+                           
+
+```
+
+```{r race_date_plot}
+
+
+fig_race_date <- plot_ly(
+  absalom_race_date,
+  x =  ~ StartDate,
+  y =  ~ black,
+  name = "Black",
+  type = 'scatter',
+  mode = 'lines+markers',
+  opacity=.4,
+  hovertemplate = paste(
+    'Decade: %{x}s',
+    '<br>',
+    'Word: Black',
+    '<extra></extra>',
+    '<br>',
+    'Count: %{y}'
+  )
+)
+fig_race_date <-
+  fig_race_date %>% add_trace(
+    y =  ~ negro,
+    name = "Negro",
+    type = 'scatter',
+    mode = 'lines+markers',
+    hovertemplate = paste(
+      'Decade: %{x}s',
+      '<br>',
+      'Word: Negro',
+      '<extra></extra>',
+      '<br>',
+      'Count: %{y}'
+    )
+    
+  )
+fig_race_date <-
+  fig_race_date %>% add_trace(
+    y =  ~ nigger,
+    name = "Nigger",
+    type = 'scatter',
+    mode = 'lines+markers',
+    opacity = .9,
+    hovertemplate = paste(
+      'Decade: %{x}s',
+      '<br>',
+      'Word: Nigger',
+      '<extra></extra>',
+      '<br>',
+      'Count: %{y}'
+    )
+  )
+fig_race_date <- fig_race_date %>%
+  layout(
+    title = "Frequency of Race Words over Time",
+    xaxis = list(title = "Date by Decade"),
+    yaxis = list(title = "Count of Word"),
+    paper_bgcolor = faulkner_paperbackground,
+    plot_bgcolor = faulkner_plotcolor,
+    colorway = faulkner_colorway,
+    margin = list(
+      l = 50,
+      r = 50,
+      b = 50,
+      t = 50,
+      pad = 4
+    )
+    
+  )
+
+div(fig_race_date, align = "center")
+div("Figure 8: Timeline of when each racial word is used.")
+
+```
+
+To highlight the trajectory of the n-word, the opacity of the other two words has been turned down a bit. What is immediately visible is that the n-word is the most used word in the 1830s and 1860s. These are two great chapters in the Sutpen saga: the establishment of a racial enslavement regime and its dissolution. During Reconstruction, the words Black and Negro are used more frequently, albeit only a very few number of times. Interestingly, the lines bifurcate from 1900 to 1910. This is because the year 1909 is grouped with 1900 and not 1910. Likely what is visible is the difference in the usage of the n-word by Rosa Coldfield and Shreve and Quentin. 
+
+
+
+## Conclusion
+
+To be continued...
 
 
