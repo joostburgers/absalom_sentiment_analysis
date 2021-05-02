@@ -54,6 +54,9 @@ library(textstem)
 library(shiny)
 library(lubridate)
 library(ggiraphExtra)
+library(htmlwidgets)
+library(RCurl)
+
 ```
 
 ```{r load_color_scheme, echo=FALSE}
@@ -745,6 +748,8 @@ absalom_race_map <- absalom_race_events %>%
 ```
 
 ```{r}
+image_file <- "https://raw.githubusercontent.com/joostburgers/absalom_sentiment_analysis/master/images/dy_base_layer.png"
+#txt <- RCurl::base64Encode(readBin(image_file, "raw", file.info(image_file)[1, "size"]), "txt")
 
 
 fig_race_map <-
@@ -754,11 +759,11 @@ fig_race_map <-
     y = ~ new_y,
     name=~name,
     color=~name,
-    #colors = faulkner_colorway,
+    colors = faulkner_colorway,
     type = 'scatter',
     mode = 'markers',
     size = ~value,
-    sizes = c(min(absalom_race_map$value)*1.5, max(absalom_race_map$value)*1.5),
+    sizes = c(5, max(absalom_race_map$value)*1.7),
       hoverinfo='text',
     text= ~paste('Count:', value,'<br>',LocationTitle),
       marker = list(
@@ -769,33 +774,56 @@ fig_race_map <-
   )
 fig_race_map <- fig_race_map %>%
   layout(
-    title = "Ten Most Frequent Word by Non-Race and Race Words",
-    xaxis = list(title = ""),
-    yaxis = list(title = ""),
+    title = "Locations of Racial Words in <i>Absalom, Absalom!</i>",
+    xaxis = list(
+      title = "",
+      visible = FALSE,
+      fixedrange = TRUE,
+      range = c(0, 2640)
+    ),
+    yaxis = list(
+      title = "",
+      visible = FALSE,
+      fixedrange = TRUE,
+      range = c(-1700, 0)
+      ),
+    
+    legend = list(
+      title = list(text = "<b>Racial Word</b>"),
+      itemsizing = 'constant'
+    ),
     paper_bgcolor = faulkner_paperbackground,
     plot_bgcolor = faulkner_plotcolor,
-    colorway= faulkner_colorway,
-    margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4),
+    margin = list(
+      l = 50,
+      r = 50,
+      b = 50,
+      t = 50,
+      pad = 4
+    ),
     images = list(
       list(
-        source =  "https://github.com/charlottesirot/elementR/blob/master/inst/www/2.png?raw=true",
+        source =  image_file,
         xref = "x",
         yref = "y",
         x = 1,
-        y = 3,
-        sizex = 2,
-        sizey = 2,
+        y = 0,
+        sizex = 2640,
+        sizey = 1700,
         sizing = "stretch",
-        opacity = 0.4,
+        opacity = 0.8,
         layer = "below"
       )
-  ))
+    )
+  )
 
-fig_race_map
+
+
+div(fig_race_map, align = "center")
+div("Figure 9: Location of Racial Words in *Absalom, Absalom!*")
+
 
 ```
-
-
 
 
 
