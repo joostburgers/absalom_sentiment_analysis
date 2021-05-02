@@ -84,8 +84,11 @@ mutate(text = gsub("[‘’]", "'", text))
 race_words <- read_csv("race_words.csv")
 ```
 
-```{r}
-    absalom_events <- read.csv("absalom_sentences_export_4_30_v2.csv")
+```{r _load_event_sentences}
+absalom_event_sentences <- read_csv("absalom_event_sentences_clean_2021_5_2.csv")
+
+#This file was created by recomposing the text based on the "First Words" column and matching the text segments with each event using a copy of the text. As this process is quite involved it has been branched out into a separate file: absalom_sentiment_text_processing. Full details on the process can be viewed there.
+
 ```
 
 
@@ -117,7 +120,6 @@ absalom_race_stats <- absalom_stats %>%
   left_join(race_words, by = "word_lemma") %>%
   mutate(race_word = replace_na(race_word, FALSE))
 ```
-
 
 
 ```{r create_plot}
@@ -424,66 +426,9 @@ One of the immediate things that stands out about this chart is just how negativ
 
 Understanding when a certain word is used and in what emotional context does not necessarily indicate who is using it. There is currently no way to determine who is speaking in *Absalom, Absalom!* This is both a practical computational issue in terms of matching speaker with dialogue, but, more philosophically, we may also wonder if anyone's language is truly their own in the text. This is a community that has been shaped by the same story for generations. The cadence, register, and tone all inform particular leitmotifs that occur and reoccur throughout the narrative. Indeed, one of the interesting phenomena that CL reveals is just how often certain turns of phrase are repeated, re-worked, and re-contextualized. The singularity of the speaker is unsettled by the multiplicity of the spoken.
 
-That being said, it is possible to investigate the proximity of racial words relative to characters. The *Digital Yoknapatawpha* database breaks down a text into events, which are, in turn, composed of locations and characters. By cross-referencing the words with the events, we can get some notion of what words are being used around what characters. This re-composition of the text drops out certain sentences because, on occasion, the event length is very short. In total, this was the case for 5 events, or .7% of the entire text. The difference is therefore negligible.
+That being said, it is possible to investigate the proximity of racial words relative to characters. The *Digital Yoknapatawpha* database breaks down a text into events, which are, in turn, composed of locations and characters. By cross-referencing the words with the events, we can get some notion of what words are being used around what characters. This re-composition process is quite technical and the full process is documented here: [link](absalom_text_processing_supplement.html).
 
-```{r match_begin_end}
-# the absalom_events data frame is read in from the CSV "absalom_sentences_export_4_30_v2.csv" This is a custom CSV created after the data extraction from the Drupal database. It is a shorter version of the fully joined data table, and substitutes the 'First word' string for the columns begin_word and end_word. The end_word is merely the begin_word moved up by an index of one. Thus, a begin and end of a search string is created. This table had to be scrubbed manually for minor errors.
 
-# The process for recomposing the text is involved. The procedure here works because both the data table and the original text had to manually cleaned. As this cleaning and aligning is part and parcel to CL more broadly the specific steps have been left out.
-
-#Tidy the begin_word vector by unnesting it into individual words. In the tidytext package, unnesting removes white spaces, punctuation, and special characters. The only special character that might remain is the curly quote [‘’]. These have a tendency to mess up the matching and have been replaced with straight quotes [']. Once all the words are clean, they are collapsed back into sentences.
-
-absalom_events_tidy_begin <- absalom_events %>%
-  unnest_tokens(begin_word, begin_word) %>%
-  mutate(begin_word = gsub("[‘’]", "'", begin_word)) %>%
-  group_by(EventID) %>%
-  summarize(begin_word = str_c(begin_word, collapse = " ")) %>%
-  ungroup()
-
-#Tidy the end_word vector
-
-absalom_events_tidy_end <- absalom_events %>%
-  unnest_tokens(end_word, end_word) %>%
-  mutate(end_word = gsub("[‘’]", "'", end_word)) %>%
-  group_by(EventID) %>%
-  summarize(end_word = str_c(end_word, collapse = " ")) %>%
-  ungroup()
-
-#Join the tidied begin and end words back to the data_frame
-
-absalom_events_tidy <- absalom_events %>%
-  select(-begin_word,-end_word) %>%
-  left_join(absalom_events_tidy_begin) %>%
-  left_join(absalom_events_tidy_end)
-
-#Convert the Absalom text to a tidy string. Here too the curly quotes have been removed as it distorted the matching.
-
-absalom_tidy_string <- absalom_df %>%
-  mutate(text = gsub("[‘’]", "'", text)) %>%
-  unnest_tokens(text, text) %>%
-  summarize(text = str_c(text, collapse = " "))
-
-#Match string in text based on regex between between begin_word and end_word
-#  -set the object for matching as the Absalom text
-#  -create a search string that reads "\\s*VAR1(.*?)\\s*VAR2". This essentially finds the longest version of VAR1 and keep searching until you find the best possible match to VAR2.
-#  -Since there are some empty results these should be filtered out.
-# -The str_match function returns a matrix of words. The full line has to be reconstituted by adding the search term to the retrieved term.
-
-absalom_event_sentences <- absalom_events_tidy %>%
-  mutate(event_sentence = str_match(
-    absalom_tidy_string$text,
-    paste(
-      "\\s*",
-      absalom_events_tidy$begin_word,
-      "(.*?)\\s*",
-      absalom_events_tidy$end_word
-    )
-  )) %>%
-  filter(!is.na(event_sentence[, 2])) %>%
-  mutate(event_sentence = paste(begin_word, event_sentence[, 2]))
-
-#FIXED: The regular expression matching is now much improved. In the csv files the order of events was not sorted by order in page. As a result, the string search could not search forward and find the end of the sentence. This needs to be fixed in the database itself. Second, some of the phrasing in the first 6-8 words were not verbatim from the text. These will eventually need to be fixed. Finally, one minor error is that some events are the actual length of the sentences they are looking for. This can't be fixed. In total, 5 events out of 644 do not properly match because of this issue. It is negligible. 
-```
 
 ```{r count_race_words}
 #Once the sentences have been matched, the full sentences is unnested, the words lemmatized, and inner_joined with the race words. These are then grouped by EventID and counted and pivot wider on each race word.
@@ -780,6 +725,53 @@ div("Figure 8: Timeline of when each racial word is used.")
 ```
 
 To highlight the trajectory of the n-word, the opacity of the other two words has been turned down a bit. What is immediately visible is that the n-word is the most used word in the 1830s and 1860s. These are two great chapters in the Sutpen saga: the establishment of a racial enslavement regime and its dissolution. During Reconstruction, the words Black and Negro are used more frequently, albeit only a very few number of times. Interestingly, the lines bifurcate from 1900 to 1910. This is because the year 1909 is grouped with 1900 and not 1910. Likely what is visible is the difference in the usage of the n-word by Rosa Coldfield and Shreve and Quentin. 
+
+
+### Mapping Racial Words
+
+We can also see where racial words take place.
+
+```{r}
+absalom_race_map <- absalom_race_events %>%
+                          distinct(EventID,.keep_all=TRUE) %>%
+                          group_by(LocationTitle, X, new_y) %>% 
+                           summarise(across(black:white, ~sum(.))) %>%
+                            select(LocationTitle,X,new_y, black, negro, nigger) %>% 
+                            pivot_longer(4:6) %>% 
+                            filter(value>0) %>% 
+                            ungroup() %>% 
+                           arrange(desc(value))
+
+```
+
+```{r}
+
+
+fig_race_map <-
+  plot_ly(
+    absalom_race_map,
+    x = ~ X,
+    y = ~ new_y,
+    name=~name,
+    color=~name,
+    #colors = faulkner_colorway,
+    type = 'scatter',
+    mode = 'markers',
+    size = ~value,
+      hoverinfo='text',
+    text= ~paste('Count:', value,'<br>',LocationTitle),
+      marker = list(
+        sizemode='diameter',
+                  opacity = .7
+            )
+  )
+
+fig_race_map
+
+```
+
+
+
 
 
 
