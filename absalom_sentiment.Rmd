@@ -758,13 +758,38 @@ fig_race_map <-
     type = 'scatter',
     mode = 'markers',
     size = ~value,
+    sizes = c(min(absalom_race_map$value)*1.5, max(absalom_race_map$value)*1.5),
       hoverinfo='text',
     text= ~paste('Count:', value,'<br>',LocationTitle),
       marker = list(
         sizemode='diameter',
-                  opacity = .7
+                  opacity = .4,
+                  line = list(width = 1, color = ~name)
             )
   )
+fig_race_map <- fig_race_map %>%
+  layout(
+    title = "Ten Most Frequent Word by Non-Race and Race Words",
+    xaxis = list(title = ""),
+    yaxis = list(title = ""),
+    paper_bgcolor = faulkner_paperbackground,
+    plot_bgcolor = faulkner_plotcolor,
+    colorway= faulkner_colorway,
+    margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4),
+    images = list(
+      list(
+        source =  "https://github.com/charlottesirot/elementR/blob/master/inst/www/2.png?raw=true",
+        xref = "x",
+        yref = "y",
+        x = 1,
+        y = 3,
+        sizex = 2,
+        sizey = 2,
+        sizing = "stretch",
+        opacity = 0.4,
+        layer = "below"
+      )
+  ))
 
 fig_race_map
 
