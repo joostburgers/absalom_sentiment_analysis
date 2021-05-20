@@ -1,6 +1,6 @@
 ---
 title: "*Absalom, Absalom!* and the Use of Racial Words"
-author: "Johannes Burgers"
+author: "Johannes Burgers and Scotti Parrish"
 output:
   html_document:
     theme: yeti
@@ -64,10 +64,10 @@ library(lubridate)
 faulkner_colorway = c("#132C53","#F27A18","#ae0700","#79b473","#38726c","#76bed0","#6b2d5c","#448b2d","#e6d812")
 
 #This controls the background color for the entire chart. Probably best left white.
-faulkner_paperbackground = c("#ffffff")
+faulkner_paperbackground = c('rgba(255,255,255,0)')
 
 #This controls the background for the plot. Probably best left white.
-faulkner_plotcolor = c("#ffffff")
+faulkner_plotcolor = c('rgba(255,255,255,.4)')
 
 #Margin 
 
@@ -75,12 +75,13 @@ m <- list(l = 50, r = 50, b = 50, t = 50, pad = 4)
 
 #Caption Style
 
-fig_caption <- "font-family: 'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif; font-weight: normal; font-size:90%"
+fig_caption <- "font-family: 'Playfair Display','Helvetica Neue',Helvetica,Arial,sans-serif; font-weight: normal; font-size:90%"
 
 plot_font <- list(
-  family = "'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif",
-  size = 14,
+  family = "'Playfair Display','Helvetica Neue',Helvetica,Arial,sans-serif",
+  size = 15,
   color = '#363636')
+
 
 ```
 
@@ -100,7 +101,7 @@ race_words <- read_csv("race_words.csv")
 ```
 
 ```{r _load_event_sentences}
-absalom_event_sentences <- read_csv("absalom_event_sentences_clean_2021_5_2.csv")
+absalom_event_sentences <- read_csv("absalom_event_sentences_clean_2021_5_10.csv")
 
 #This file was created by recomposing the text based on the "First Words" column and matching the text segments with each event using a copy of the text. As this process is quite involved it has been branched out into a separate file: absalom_sentiment_text_processing. Full details on the process can be viewed there.
 
@@ -166,7 +167,7 @@ absalom_word_frequency_plot <- plot_ly(
 absalom_word_frequency_plot <- absalom_word_frequency_plot %>%
   layout(
     font = plot_font,
-    title = "Ten Most Frequent Word by Non-Race and Race Words",
+    title = "Ten Most Frequent Words by Non-Race and Race Words",
     xaxis = list(title = "Word Stem"),
     yaxis = list(title = "Number of Words"),
     legend = list(title = list(text = '<b>Racial Word</b>')),
@@ -174,6 +175,10 @@ absalom_word_frequency_plot <- absalom_word_frequency_plot %>%
     plot_bgcolor = faulkner_plotcolor,
      margin = m
       )
+
+
+
+
 
 div(absalom_word_frequency_plot, align = "center")
 
@@ -284,9 +289,9 @@ wild_plot <- wild_plot %>%
 
 wild_plot <-
   wild_plot %>% layout(colorway=faulkner_colorway,
-    title = "Use of 'Wild N-word' and 'Wild Negro'<br> by different speakers in <i>Absalom, Absalom!</i>",
-    xaxis = list(title = "<b>Speaker</b>"),
-    yaxis = list(title = "<b>Count</b>"),
+    title = "Use of Wild N-word and 'Wild Negro'<br> by different speakers in <i>Absalom, Absalom!</i>",
+    xaxis = list(title = "Speaker"),
+    yaxis = list(title = "Count"),
     legend= list(
                  title=list(text="<b>Racial Word</b>"),
                 itemsizing='constant'),
@@ -395,6 +400,15 @@ tags$br()
 ```
   
 Chapter 7 is particularly racially charged. While the text's various narrators (Rosa, Mr. Compson, Quentin, Shreve) predominate in certain chapters, it would be a mistake to attribute particular words to particular characters based on this raw data. We may recall that chapter 7 is a nested narrative in which we are told the story of Thomas Sutpen as he related it to General Compson, who told it to Mr. Compson, who told it to Quentin, who is telling it to Shreve. There are so many narrative frames that it is very difficult to determine whose language this is. What is apparent is that the chapter in which most of Sutpen's life is revealed is steeped in pejorative racist language. To be sure, in all the other chapters the word "negro" or "black" is used more frequently to describe African Americans. 
+
+
+### A Closer look at Chapter 7
+
+```{r use_nword_chapter7}
+
+```
+
+
 
 ## Part 2: Sentiment Analysis and Racial Language
 
@@ -511,7 +525,7 @@ absalom_race_words <- absalom_event_sentences %>%
 ```
 
 ```{r read_all_absalom_events}
-absalom_all_events <- read_csv("absalom_all_events_2021_4_30.csv")
+absalom_all_events <- read_csv("absalom_all_events_2021_5_11.csv")
 ```
 
 ```{r clean_up_absalom_events}
@@ -630,6 +644,8 @@ fig_race_bar <- fig_race_bar %>%
                 itemsizing='constant'),
     barmode = 'group',
     colorway = faulkner_colorway,
+    paper_bgcolor = faulkner_paperbackground,
+    plot_bgcolor = faulkner_plotcolor,
     margin = m,
     font = plot_font
   )
@@ -656,15 +672,15 @@ n_word_frequency <-  absalom_word_frequency %>%
 In order to get a better view into how often a racial word is used in the same event as a character, we need to normalize the data by the number of times the word occurs. This way we can understand, proportionally, how often a character is in an event when a particular word occurs. We know from the previous chart that the n-word occurs `r n_word_frequency$n[1]` times. Dividing the number of occurrences for each character by this number produces the percentage chart below. 
 
 ```{r percentage_n_word}
-
-n_word_character <- absalom_race_events %>% 
-                          group_by(CharacterName) %>% 
-                           summarise(across(n_word, ~sum(.)/n_word_frequency$n)) %>% 
-                          top_n(10) %>% 
-                           mutate(CharacterName = reorder(CharacterName, desc(n_word))) 
+n_word_character <- absalom_race_events %>%
+  group_by(CharacterName) %>%
+  summarise(across(n_word, ~ sum(.) / n_word_frequency$n)) %>%
+  top_n(10) %>%
+  mutate(CharacterName = reorder(CharacterName, desc(n_word)))
 
 #Get percentage of Sutpen related to N-word
-Sutpen_n_word_percent <- n_word_character %>% filter(CharacterName=="Thomas Sutpen") 
+Sutpen_n_word_percent <-
+  n_word_character %>% filter(CharacterName == "Thomas Sutpen") 
 ```
 
 
@@ -706,13 +722,11 @@ The use of racial language is also time bound. Certain words are more prominent 
 
 ```{r race_by_date}
 absalom_race_date <- absalom_race_events %>%
-                          distinct(EventID,.keep_all=TRUE) %>%
-                          mutate(StartDate = as.numeric(paste(str_sub(StartDate, 1,3),0,sep = ""))) %>% 
-                          group_by(StartDate) %>% 
-                           summarise(across(black:white, ~sum(.))) %>% 
-                            select(StartDate, black, blood, negro, n_word, white)
-                           
-
+  distinct(EventID, .keep_all = TRUE) %>%
+  mutate(StartDate = as.numeric(paste(str_sub(StartDate, 1, 3), 0, sep = ""))) %>%
+  group_by(StartDate) %>%
+  summarise(across(black:white, ~ sum(.))) %>%
+  select(StartDate, black, blood, negro, n_word, white)
 ```
 
 ```{r race_date_plot}
@@ -723,7 +737,7 @@ fig_race_date <- plot_ly(
   name = "Black",
   type = 'scatter',
   mode = 'lines+markers',
-  opacity=.4,
+  opacity = .4,
   hovertemplate = paste(
     'Decade: %{x}s',
     '<br>',
@@ -759,7 +773,7 @@ fig_race_date <-
     hovertemplate = paste(
       'Decade: %{x}s',
       '<br>',
-      'Word: Nigger',
+      'Word: N-word',
       '<extra></extra>',
       '<br>',
       'Count: %{y}'
@@ -770,9 +784,7 @@ fig_race_date <- fig_race_date %>%
     title = "Frequency of Race Words over Time",
     xaxis = list(title = "Date by Decade"),
     yaxis = list(title = "Count of Word"),
-    legend= list(
-                 title=list(text="<b>Racial Word</b>")
-               ),
+    legend = list(title = list(text = "<b>Racial Word</b>")),
     paper_bgcolor = faulkner_paperbackground,
     plot_bgcolor = faulkner_plotcolor,
     colorway = faulkner_colorway,
