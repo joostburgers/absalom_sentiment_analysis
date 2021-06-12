@@ -866,12 +866,9 @@ fig_race_map <- fig_race_map %>%
       title = list(text = "<b>Racial Word</b>"),
       itemsizing = 'constant'
     ),
-    
     autosize = F,
       width = 768,
       height = 605,
-    
-    
     images = list(
       list(
         source =  image_file,
