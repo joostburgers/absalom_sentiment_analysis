@@ -420,7 +420,7 @@ For literary works, sentiment analysis is far more speculative and merits quite 
 
 One of the most basic ways to think through sentiment are positive and negative sentiments across a text. The basic procedure is to tag each positive and negative sentiment in a text and then tabulate these chunks by some logical unit, be it a sentence, paragraph, or chapter. This will give you the total sentiment of that particular unit. Since, we are interested in the emotion surrounding racial words, it makes the most sense to set the unit boundary at the sentence level. This produces a very granular chart, but for *Absalom, Absalom!* this granularity is very revealing.
 
-```{r text_sentiment, cache=TRUE}
+```{r text_sentiment}
 #Sentiment analysis across the text
 race_sentences <- absalom_race_stats %>%
   filter(race_word == TRUE) %>%
