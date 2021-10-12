@@ -65,6 +65,7 @@ library(plotly)
 library(textstem)
 library(shiny)
 library(lubridate)
+library(rmdformats)
 
 ```
 
@@ -932,5 +933,7 @@ Relating these scenes Quentin marks, again and again, instances of white-on-whit
 ## Conclusion
 
 *Absalom* addressed, without yet solving, the problem that James Baldwin handed to white people in an interview in 1963. He said: "Now here in this country we've got something called a n[-word] . . . [I]t doesn't exist in any other country in the world. . . . White people invented him. . . . It had to be something you were afraid of and you invested me with . . . . You still think---I gather---that [this invention]is necessary. Well he is unnecessary to me so he must be necessary to you. I give you your problem back." The linguistic analysis of Faulkner's use of racial language in *Absalom, Absalom!* is quite striking. It demonstrates that he does not use the n-word casually and indiscriminately. Instead, it serves a specific purpose as a dramatic and thematic marker. The n-word is a way for Sutpen to denigrate the Black body at the very moment of his own sense of powerlessness.  It is means to redirect the class resentment he feels towards white enslavers onto the racialized bodies of the enslaved. Through this act of deflection, Sutpen is able to push to the periphery lingering anxieties about his own "poor white" heritage, and, by extension, his own sense of whiteness. To borrow Baldwin's insight, Sutpen invents the n-word as a necessary means of self-preservation, but this, paradoxically, prevents him from ever finding common cause with the enslaved. Therefore, he can never find a way to dismantle the power structure, and he will spend the rest of his life trying to mimic the very society that rejected him.
+
+
 
 #### Works Cited

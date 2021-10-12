@@ -1,8 +1,8 @@
 ---
-title: "Absalom and Racial Words: Text Processing Supplement"
+title: "The Bitter Sum: Text Processing Supplement"
 author: "Johannes Burgers"
-date: "5/2/2021"
-output: html_document
+date: "09/2/2021"
+output: rmdformats::html_clean
 ---
 
 
@@ -15,6 +15,7 @@ The following supplement was created to provide an overview of recomposing *Absa
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, error=FALSE)
 ```
 
+## Part 1: Pre-processing
 
 ### Import libraries
 ```{r libraries}
@@ -22,6 +23,9 @@ library(tidyverse)
 library(tidytext)
 ```
 
+```{r rmdformats, include=FALSE}
+library(rmdformats)
+```
 
 ### Import the full text of *Absalom, Absalom!*
 
@@ -45,17 +49,17 @@ absalom_tidy_string <- absalom_df %>%
 
 ### Import Absalom sentences
 
-The absalom_events data frame is read in from the CSV "absalom_sentences_export_4_30_v2.csv" This is a custom CSV created after the data extraction from the Drupal database. It is a shorter version of the fully joined data table, and substitutes the 'First word' string for the columns begin_word and end_word. The end_word is merely the begin_word moved up by an index of one. Thus, a begin and end of a search string is created. This table had to be scrubbed manually for minor errors.
+The absalom_events data frame is read in from the CSV `absalom_sentences_export_4_30_v2.csv` This is a custom CSV created after the data extraction from the Drupal database. It is a shorter version of the fully joined data table, and substitutes the `First word` string for the columns `begin_word` and `end_word`. The `end_word` is merely the `begin_word` moved up by an index of one. Thus, a begin and end of a search string is created. This table had to be scrubbed manually for minor errors.
+
 ```{r absalom_events}
 absalom_events <- read_csv("absalom_sentences_export_4_30_v2.csv")
 ```
 
-### Recomposing the text
-
+## Part 2: Recomposing the text
 
 The process for recomposing the text is involved. The procedure here works because both the data table and the original text had to manually cleaned. As this cleaning and aligning is part and parcel to CL more broadly the specific steps have been left out.
 
-Tidy the begin_word vector by unnesting it into individual words. In the tidytext package, unnesting removes white spaces, punctuation, and special characters. The only special character that might remain is the curly quote [‘’]. These have a tendency to mess up the matching and have been replaced with straight quotes [']. Once all the words are clean, they are collapsed back into sentences.
+Tidy the `begin_word` vector by unnesting it into individual words. In the `tidytext` package, unnesting removes white spaces, punctuation, and special characters. The only special character that might remain is the curly quote [‘’]. These have a tendency to distort the matching and have been replaced with straight quotes [']. Once all the words are clean, they are collapsed back into sentences.
 
 
 ```{r tidy_begin_word}
@@ -69,7 +73,7 @@ absalom_events_tidy_begin <- absalom_events %>%
 
 ```
 
-Repeat the process for the end_word vector.
+Repeat the process for the `end_word` vector.
 
 ```{r tidy_end_word}
 absalom_events_tidy_end <- absalom_events %>%
@@ -80,7 +84,7 @@ absalom_events_tidy_end <- absalom_events %>%
   ungroup()
 ```
 
-Join the tidied begin and end words back to the data_frame
+`Join` the tidied `begin_word` and `end_word` back to the `data_frame`
 
 ```{r join_tidy}
 absalom_events_tidy <- absalom_events %>%
@@ -89,12 +93,12 @@ absalom_events_tidy <- absalom_events %>%
   left_join(absalom_events_tidy_end)
 ```
 
-### Regex Matching
+## Part 3: Regex Matching
 
-Match string in text based on regex between between begin_word and end_word:
+Match string in text based on regex between between `begin_word` and `end_word`:
 
 - Set the object for matching as the Absalom text
-- Create a search string that reads `"\\s*VAR1(.*?)\\s*VAR2"`. This essentially finds the longest version of VAR1 and keep searching until you find the best possible match to VAR2.
+- Create a search string that reads `"\\s*VAR1(.*?)\\s*VAR2"`. This essentially finds the longest version of `VAR1` and keep searching until you find the best possible match to `VAR2`.
 - Since there are some empty results these should be filtered out.
 - The `str_match()` function returns a matrix of words. The full line has to be reconstituted by adding the search term to the retrieved term.
 
@@ -115,4 +119,4 @@ absalom_event_sentences <- absalom_events_tidy %>%
 
 ### Final Clean Up
 
-The regular expression matching runs into problems when the event length is equal to the first variable of the query. Essentially, it finds the proper match, but the proper match equals "". In theory, converting all NAs to the first part of the query strings should give the same result. In practice, the table was manually read out and edited as this was only 5 events. 
+The regular expression matching runs into problems when the event length is equal to the first variable of the query. Essentially, it finds the proper match, but the proper match equals "". In theory, converting all `NAs` to the first part of the query strings should give the same result. In practice, the table was manually read out and edited as this was only 5 events. 
